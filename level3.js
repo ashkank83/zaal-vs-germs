@@ -31,7 +31,7 @@ const FACTS = {
   verruca: 'A <b>verruca</b> is a wart on the sole of your foot. A wart on your hand is a <b>common wart</b>. Its posh name is verruca vulgaris!',
   otherKind: 'Getting rid of one kind of wart virus doesn\'t protect you from the other kinds. That\'s why you can get a new wart somewhere else.',
   lucidum: 'Your palms and soles have the <b>thickest skin</b> on your body. They even have an extra see-through layer that most skin doesn\'t have!',
-  tinyVirus: 'Viruses are tiny. You could line up more than <b>20</b> wart viruses across a single bacterium!',
+  tinyVirus: 'Viruses are tiny. About <b>10</b> wart viruses side by side would only just stretch across one bacterium!',
   shape: 'The wart virus is shaped like a <b>20-sided dice</b>. That shape is called an <b>icosahedron</b> (say "eye-koss-uh-HEE-drun").',
   keratin: 'Your hair, your nails and the tough top layer of your skin are all made of <b>keratin</b>. A wart is a lump of extra keratin.',
   dots: 'The black dots in a wart are not seeds! They are tiny <b>blood vessels</b> that grew into the wart and clotted.',
