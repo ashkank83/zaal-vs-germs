@@ -22,7 +22,7 @@ there and help his body get rid of it.
   **killer T cells** what to hunt. T cells make infected cells self-destruct.
 
 ## Team
-1. **Zaal**: super-jump, and squirts **salicylic acid** to melt yellow keratin walls.
+1. **Zaal**: super-jump, and squirts **salicylic acid** to melt yellow keratin walls and loosen dead skin flakes.
 2. **Gobbler** (macrophage): swallows virus particles. Wrong answer: the virus hides inside a skin cell for a while.
 3. **Langer** (Langerhans cell, new): grabs a virus sample, then takes it to the **lymph vessel** to raise the alarm.
 
@@ -32,14 +32,15 @@ a hero must stand there to turn them round (Lemmings). Need 7 to reach **King Pa
 zaps him and he shrinks. Lost T cells go back to the capillary for another go.
 
 ## Layout (left to right)
-Sweat gland pit · lymph vessel · capillary · heroes' start · keratin wall (acid) · a virus · sweat-duct lift (floats
+Sweat gland pit · lymph vessel · capillary · heroes' start · a virus · keratin wall (acid) · dead skin flakes (acid
+loosens them, then push them right) · a crack the T cells can't cross until it's plugged · sweat-duct lift (floats
 you up, like Level 2's gas vent) · raised platform with viruses · keratin dome (acid) · step down · King's chamber ·
 sweat pore exit (opens when the King is beaten).
 
 ## Gentle pressure (no timers)
 - Zaal's brain chats from upstairs ("It's SO tempting to pick it...").
 - Now and then Zaal's **fingernail picks the wart**: everyone hops, and the brain apologises. Teaches "don't pick".
-- The King puffs out a new virus particle now and then (at most 3 at a time).
+- Until the alarm, the King puffs out a new virus particle if none are left, so Langer always has one to sample.
 
 ## Finale and end
 The King shrinks and pops → new skin grows up from below → the team pops out of a sweat pore onto Zaal's palm → tips:
