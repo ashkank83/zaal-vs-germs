@@ -14,6 +14,7 @@ re-running after adding a level only renders the new lines.
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -50,6 +51,13 @@ SAY_AS = {
     r'\bverruca\b': 'ver-roo-ka',
     r'\bvulgaris\b': 'vul-gar-iss',
     r'\bHPV\b': 'aitch pee vee',
+    r'\brhinovirus(es)?\b': r'rye-no-virus\1',
+    r'\bneutrophils?\b': lambda m: 'new-tro-fill' + ('s' if m.group(0).lower().endswith('s') else ''),
+    r'\bturbinates?\b': lambda m: 'tur-bin-ut' + ('s' if m.group(0).lower().endswith('s') else ''),
+    r'\bcilia\b': 'silly-a',
+    r'\btrigeminal\b': 'try-jem-in-al',
+    r'\bIgA\b': 'eye jee ay',
+    r'\bsaline\b': 'say-line',
 }
 
 
@@ -70,7 +78,10 @@ def main(lines_path):
         with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
             sf.write(tmp.name, samples, rate)
         out = os.path.join(OUT, line['key'] + '.m4a')
-        subprocess.run(['afconvert', '-f', 'm4af', '-d', 'aac', '-b', '48000', tmp.name, out], check=True)
+        if shutil.which('afconvert'):  # macOS
+            subprocess.run(['afconvert', '-f', 'm4af', '-d', 'aac', '-b', '48000', tmp.name, out], check=True)
+        else:  # Linux: ffmpeg
+            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', tmp.name, '-c:a', 'aac', '-b:a', '48k', out], check=True)
         os.unlink(tmp.name)
         print(f'[{i}/{len(todo)}] {line["key"]} {line["text"][:60]}')
     keys = sorted(f[:-4] for f in os.listdir(OUT) if f.endswith('.m4a'))
