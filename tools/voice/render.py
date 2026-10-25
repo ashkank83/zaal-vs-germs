@@ -51,6 +51,14 @@ SAY_AS = {
     r'\bverruca\b': 'ver-roo-ka',
     r'\bvulgaris\b': 'vul-gar-iss',
     r'\bHPV\b': 'aitch pee vee',
+    r'\brhinovirus(es)?\b': r'rye-no-virus\1',
+    r'\bneutrophils?\b': lambda m: 'new-tro-fill' + ('s' if m.group(0).lower().endswith('s') else ''),
+    r'\bturbinates?\b': lambda m: 'tur-bin-ut' + ('s' if m.group(0).lower().endswith('s') else ''),
+    r'\bcilia\b': 'silly-a',
+    r'\btrigeminal\b': 'try-jem-in-al',
+    r'\bIgA\b': 'eye jee ay',
+    r'\bsaline\b': 'say-line',
+    r'\bbogeys?\b': lambda m: 'bo-gee' + ('s' if m.group(0).lower().endswith('s') else ''),
 }
 
 
