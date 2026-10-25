@@ -834,7 +834,7 @@ function drawCapillary(c) {
   c.fillText('BLOOD VESSEL', CAP.x + 8, CAP.y - 22);
   if (!released) {
     c.fillStyle = '#e8dcff'; c.font = 'bold 10px Trebuchet MS'; c.textAlign = 'left';
-    c.fillText(`${left} neutrophils waiting · press R to call them`, CAP.x + 40, CAP.y - 74);
+    c.fillText(keyText(`${left} neutrophils waiting · press R to call them`), CAP.x + 40, CAP.y - 74);
   }
 }
 function drawLabels(c) {
@@ -1323,7 +1323,7 @@ function flyExtras(c, z) {
 
 return {
   num: 4, code: 'GOOP', award: 'ITCH', title: 'Level 4 · Snot Storm',
-  facts: FACTS, exit: EXIT, escort: { total: NEU_TOTAL, need: NEU_NEED, color: '#c8a8f0' },
+  release: 'call neutrophils', facts: FACTS, exit: EXIT, escort: { total: NEU_TOTAL, need: NEU_NEED, color: '#c8a8f0' },
   solid, reset, usePower, update, render, renderBackground: paintBackground, renderTerrain: paintTerrain,
   story: STORY, fly: FLY, finale: FINALE, flyExtras,
   lines: [...BRAIN_LINES.map(b => b[1]), ...Object.values(BRAIN)].map(t => 'Brain says: ' + t),

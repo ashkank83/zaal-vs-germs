@@ -331,7 +331,7 @@ function drawVessel(c) {
   if (spawned < RBC_TOTAL) for (let i = 0; i < Math.min(3, RBC_TOTAL - spawned); i++)
     drawRBC(c, 1.7 * T + i * 14, y1 - 6 + Math.sin(anim * 3 + i) * 1.5, 1, anim, 'wait');
   c.fillStyle = '#ffd0d0'; c.font = 'bold 11px Trebuchet MS'; c.textAlign = 'center';
-  c.fillText(released ? 'torn blood vessel' : `torn blood vessel: ${RBC_TOTAL - spawned} cells waiting (R)`, 5 * T, y0 - 6);
+  c.fillText(released ? 'torn blood vessel' : keyText(`torn blood vessel: ${RBC_TOTAL - spawned} cells waiting (R)`), 5 * T, y0 - 6);
 }
 function drawExit(c) {
   const x0 = 35.6 * T, y0 = 8.7 * T, y1 = 12 * T;
@@ -488,7 +488,7 @@ function flyExtras(c) {
 
 return {
   num: 1, code: 'GERM', award: 'PLOP', title: 'Level 1 · The Bleeding Ulcer',
-  facts: FACTS, exit: EXIT, escort: { total: RBC_TOTAL, need: RBC_NEED, color: '#e2323a' },
+  release: 'release blood cells', facts: FACTS, exit: EXIT, escort: { total: RBC_TOTAL, need: RBC_NEED, color: '#e2323a' },
   solid, reset, usePower, update, render, renderBackground: paintBackground, renderTerrain: paintTerrain,
   story: STORY, fly: FLY_ROUTE, flyExtras,
   onStart() { setTimeout(() => fact('hpylori'), 1500); },

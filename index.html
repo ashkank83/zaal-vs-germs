@@ -2,12 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0d0204">
 <title>Zaal vs Germs</title>
 <style>
   html, body { margin: 0; height: 100%; background: #0d0204; color: #f3e6d8;
-    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
-  #wrap { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; overflow: hidden;
+    overscroll-behavior: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-text-size-adjust: 100%; }
+  input { -webkit-user-select: text; user-select: text; }
+  #wrap { width: 100vw; height: 100vh; height: 100dvh; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
   #stage { position: relative; box-shadow: 0 0 60px rgba(160, 20, 30, .35); }
   #game { display: block; width: 100%; height: 100%; }
   .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
@@ -32,7 +39,8 @@
   .pics { display: flex; justify-content: center; gap: 1em; }
   .pics img { width: 4.5em; height: 4.5em; }
   .w { color: #ffd88a; border-bottom: .12em dotted #ffd88a; cursor: pointer; }
-  .w:hover { background: rgba(255, 216, 138, .15); }
+  @media (hover: hover) { .w:hover { background: rgba(255, 216, 138, .15); } }
+  .w:active { background: rgba(255, 216, 138, .25); }
   .pron { color: #c9a9a0; font-size: .85em; font-style: italic; }
   #wordTip { min-height: 2.6em; margin-top: .4em; font-size: .85em; background: rgba(0,0,0,.3); border-radius: .5em;
     padding: .35em .7em; text-align: left; color: #f3e6d8; }
@@ -41,7 +49,8 @@
   .nav .go { margin: 0 0 0 auto; }
   #storyDots { flex: 1; text-align: center; color: #a8323f; letter-spacing: .2em; }
   .sec { background: rgba(243, 230, 216, .15); color: #f3e6d8; padding: .35em .8em; border: .08em solid #a8323f; }
-  .sec:hover { background: rgba(243, 230, 216, .25); }
+  @media (hover: hover) { .sec:hover { background: rgba(243, 230, 216, .25); } }
+  .sec:active { background: rgba(243, 230, 216, .3); }
   .tip { font-size: .8em; color: #c9a9a0; text-align: center; }
   .mathGrid { display: flex; gap: 1.2em; align-items: stretch; }
   .mrow { display: flex; gap: .4em; justify-content: center; margin: .3em 0; }
@@ -64,7 +73,7 @@
   .op { font-size: 1.3em; font-weight: bold; margin: 0 .2em; }
   #glossList { text-align: left; max-height: 22em; overflow: auto; font-size: .85em; columns: 2; column-gap: 1.5em; }
   #glossList div { break-inside: avoid; margin-bottom: .45em; cursor: pointer; }
-  #glossList div:hover b { text-decoration: underline; }
+  @media (hover: hover) { #glossList div:hover b { text-decoration: underline; } }
   #glossList b { color: #ffd88a; }
   .keys { font-size: .85em; color: #e8c9c0; margin-top: .4em; }
   kbd { background: #f3e6d8; color: #2b070c; border-radius: .25em; padding: 0 .35em; font-family: inherit; font-weight: bold; }
@@ -106,6 +115,7 @@
   #end .panel { max-height: 94%; overflow: auto; box-sizing: border-box; padding: .8em 1.5em; }
   #end h1 { font-size: 2.2em; }
   #endArt:not([hidden]) ~ #endList { max-height: 7em; }
+  #facts.lv1 { left: 26%; bottom: auto; top: 9%; width: 44%; }    /* level 1's heroes start bottom-left */
   #facts.lv2 { left: auto; right: 1%; bottom: auto; top: 22%; width: 46%; }   /* level 2's action starts bottom-left */
   #facts.lv4 { left: auto; right: 1%; bottom: auto; top: 22%; width: 40%; }   /* and level 4 */
   #facts.lv3 { left: auto; right: 1%; bottom: auto; top: 22%; width: 40%; }   /* level 3 too */
@@ -122,6 +132,45 @@
     background: rgba(255, 236, 245, .95); color: #4a1030; border: .12em solid #c0507a; border-radius: 1em; padding: .35em .9em;
     font-size: .95em; font-weight: bold; text-align: center; animation: pop .3s ease-out; }
   #brainSays:empty { display: none; }
+  /* ---- touch controls (tablets and phones) ---- */
+  #touch { display: none; }
+  body.touch #touch.show { display: block; }
+  #touch button, #dpad { position: fixed; touch-action: none; z-index: 20; font-family: inherit; font-weight: bold;
+    color: #2b070c; background: rgba(243, 230, 216, .88); border: .12em solid rgba(255,255,255,.7); border-radius: 50%;
+    box-shadow: 0 .25em 0 rgba(0,0,0,.45); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  #touch .down, #dpad.l .tl, #dpad.r .tr { transform: translateY(.15em); box-shadow: none; filter: brightness(1.15); }
+  #dpad { left: calc(env(safe-area-inset-left, 0px) + var(--cs) * .25); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--cs) * .3);
+    width: calc(var(--cs) * 2.4); height: calc(var(--cs) * 1.15); border-radius: calc(var(--cs) * .58);
+    flex-direction: row; padding: 0; overflow: hidden; background: rgba(243, 230, 216, .25); }
+  #dpad span { flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cs) * .55);
+    background: rgba(243, 230, 216, .88); margin: .1em; border-radius: calc(var(--cs) * .5); }
+  #touch #tJump { right: calc(env(safe-area-inset-right, 0px) + var(--cs) * .25); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--cs) * .3 + var(--lift, 0px));
+    width: calc(var(--cs) * 1.25); height: calc(var(--cs) * 1.25); font-size: calc(var(--cs) * .6); background: rgba(199, 224, 79, .92); color: #23360a; }
+  #touch #tPower { right: calc(env(safe-area-inset-right, 0px) + var(--cs) * 1.6); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--cs) * .3 + var(--lift, 0px));
+    width: calc(var(--cs) * 1.1); height: calc(var(--cs) * 1.1); font-size: calc(var(--cs) * .45); background: rgba(255, 216, 138, .95); }
+  #tPower small, #tJump small { font-size: .4em; line-height: 1; }
+  #touch #tSwitch { right: calc(env(safe-area-inset-right, 0px) + var(--cs) * .45); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--cs) * 1.75 + var(--lift, 0px));
+    width: calc(var(--cs) * .85); height: calc(var(--cs) * .85); font-size: calc(var(--cs) * .4); }
+  #touch #tRelease { right: calc(env(safe-area-inset-right, 0px) + var(--cs) * .25); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--cs) * 2.85 + var(--lift, 0px));
+    width: calc(var(--cs) * 2.5); min-height: calc(var(--cs) * .75); border-radius: calc(var(--cs) * .38); padding: .2em calc(var(--cs) * .2);
+    font-size: calc(var(--cs) * .27); line-height: 1.15; background: rgba(255, 138, 138, .95); animation: nudge 1.4s ease-in-out infinite; }
+  @keyframes nudge { 50% { scale: 1.07; } }
+  /* With room below the game: one row of buttons on each side, and the release button and tool buttons in the middle. */
+  body[data-layout="below"] #touch #tSwitch { right: calc(env(safe-area-inset-right, 0px) + var(--cs) * 2.9); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--cs) * .45); }
+  body[data-layout="below"] #touch #tRelease { right: auto; left: 50%; transform: translateX(-50%); width: auto; white-space: nowrap;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--cs) * .3); padding: 0 calc(var(--cs) * .35); font-size: calc(var(--cs) * .3); }
+  body.touch[data-layout="below"] #tools { top: 100%; bottom: auto; right: 50%; transform: translateX(50%); margin-top: .5em; }
+  body.touch #tools button { padding: .4em .7em; }
+  body.touch #pad { grid-template-columns: repeat(3, 3.8em); gap: .45em; }
+  body.touch #pad button { font-size: 1.5em; padding: .3em 0; }
+  /* With no room beside or below the game, the buttons float over it and go see-through. */
+  body[data-layout="over"] #touch button, body[data-layout="over"] #dpad span { opacity: .55; }
+  body[data-layout="over"] #touch .down { opacity: .9; }
+  #rotate { display: none; position: fixed; inset: 0; z-index: 50; background: #0d0204; color: #f3e6d8;
+    flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 1.4em; padding: 1em; }
+  #rotate b { font-size: 3em; display: block; animation: turn 2s ease-in-out infinite; }
+  @keyframes turn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+  @media (orientation: portrait) { body.touch #rotate { display: flex; } }
   #brainSays::before { content: '🧠 BRAIN (upstairs): '; color: #c0507a; }
 </style>
 </head>
@@ -136,6 +185,7 @@
       <button id="btnRead">🔊 Read aloud: on</button>
       <button id="btnSound">Sound: on</button>
       <button id="btnRestart">Restart level</button>
+      <button id="btnFull" hidden>⛶ Full screen</button>
     </div>
 
     <div id="fly" class="overlay show">
@@ -213,6 +263,15 @@
   </div>
 </div>
 
+
+<div id="touch">
+  <div id="dpad"><span class="tl">◀</span><span class="tr">▶</span></div>
+  <button id="tRelease" hidden>🚪 Release</button>
+  <button id="tSwitch">🔄</button>
+  <button id="tPower">⚡<small id="tPowerName"></small></button>
+  <button id="tJump">⤒<small>jump</small></button>
+</div>
+<div id="rotate"><b>📱</b>Turn your tablet sideways to play!</div>
 
 <script src="voice/index.js"></script>
 <script src="engine.js"></script>

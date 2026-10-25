@@ -37,6 +37,14 @@ The URL hash picks the level (`index.html#PLOP`). The title screen's 🔑 Enter 
 - Shared helpers a level should reuse: `makeHero`, `makeGerm`, `updateHeroes(dt, after, pre)`, `updateGerms(dt, special)`, `spawnWalkers`, `walkStep`, `updateParticles`, `nearestGerm`, `gapCells`, `fillCells`, `drawHeroes`, `drawParts`, `drawFloats`, `hudTop`, `hudBottom`, `showEnd(title, html, award)`, `fact(key)`, `say(entity, text)`, `speak(html)`, `openMath(prompt, onRight, onWrong)`, and `flyStart(steps, done)` for cut-scenes. A scene step is `{ text, dur, draw(c, t), onShow }`.
 - Add new glossary words with `Object.assign(GLOSS, {...})` and portraits with `Object.assign(IMG, {...})`, using keys no other level uses.
 
+## Touch screens (tablets and phones)
+
+- Touch mode switches on at boot on a touch-first device, or with the first finger tap. Pressing an arrow key switches it off. It adds `body.touch`.
+- While a level is being played, `#touch` shows on-screen buttons: a ◀ ▶ d-pad (hold it, or slide a finger across), ⤒ jump, ⚡ power, 🔄 next hero and a 🚪 release button. `fit()` makes room for them below the game (tablets) or beside it (phones), or floats them over the game when neither fits. Tapping a hero, or a hero's name in the top bar, switches to that hero (this works with a mouse too).
+- A level that uses R to release its walkers sets `release: 'call neutrophils'` (a lower-case label) in its return object. That label appears on the 🚪 button and in the touch version of the mission page's key line.
+- Write hints as "press E" or "press R". `keyText()` turns them into "tap ⚡" or "tap 🚪" on touch screens, so wrap level-drawn canvas labels that mention keys in `keyText(...)`. On the story pages, `<kbd>` keys and the `p.keys` line are swapped in the DOM only, so the recorded voice clips stay the same.
+- Test touch with Playwright: `newContext({ viewport: { width: 1024, height: 768 }, hasTouch: true, isMobile: true })`. Use `page.tap` for taps, and CDP `Input.dispatchTouchEvent` to hold the d-pad.
+
 ## Adding a level: checklist
 
 1. Agree the concept and plan with the user first (see the design rules above).
