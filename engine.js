@@ -1084,6 +1084,7 @@ function boot() {
   const code = decodeURIComponent(location.hash.slice(1)).trim().toUpperCase();
   LV = Object.values(LEVELS).find(l => l.code === code) || LEVELS[1];
   document.querySelector('#flyTitle h2').textContent = LV.title;
+  document.getElementById('facts').classList.add('lv' + LV.num);
   fly.steps = LV.fly; fly.ship = [...LV.fly[0].path[0]];
   buildGloss();
   renderBackground();

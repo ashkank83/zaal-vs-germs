@@ -81,8 +81,8 @@ function buildGrid() {
   g[17][29] = 5; g[17][33] = 5;                                                   // hard poo boulders
   for (let x = 36; x <= 38; x++) for (let y = 1; y < 13; y++) g[y][x] = 1;        // rectum wall
   for (let y = 13; y < 18; y++) { g[y][36] = 3; g[y][37] = 10; }                  // inner and outer sphincters
-  for (const x of [7, 8, 9, 24, 25, 26]) g[1][x] = 1;                             // folds in the colon roof
-  g[2][8] = 1; g[2][25] = 1;
+  for (const x of [13, 14, 15, 24, 25, 26]) g[1][x] = 1;                          // folds in the colon roof
+  g[2][14] = 1; g[2][25] = 1;
   return g;
 }
 const solid = t => t === 1 || t === 2 || t === 4 || t === 5 || t === 6 || t === 9 || t === 11 ||
