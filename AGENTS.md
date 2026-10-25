@@ -19,7 +19,8 @@ A browser game that Ashkan is building with his son Zaal (7). Zaal co-designs ev
 |---|---|---|
 | GERM | Level 1 · The Bleeding Ulcer (stomach, H. pylori) | |
 | PLOP | Level 2 · The Great Poo Escape (colon, C. diff) | Level 1 |
-| BURP | Level 3 (not built yet) | Level 2 |
+| BURP | Level 3 · Wart Undercover (palm of Zaal's left hand, HPV) | Level 2 |
+| GOOP | Level 4 (not built yet) | Level 3 |
 
 The URL hash picks the level (`index.html#PLOP`). The title screen's 🔑 Enter code box sets the hash and reloads.
 
