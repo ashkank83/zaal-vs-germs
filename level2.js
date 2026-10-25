@@ -623,7 +623,7 @@ function drawCrapsule(c) {
   for (let i = 0; i <= 8; i++) c.lineTo(1.6 * T + i * 6, y0 + h - 3 + (i % 2 ? 6 : -4));
   c.closePath(); c.fill();
   c.fillStyle = '#e8ffe8'; c.font = 'bold 11px Trebuchet MS'; c.textAlign = 'left';
-  if (!released) c.fillText(`${left} good bacteria waiting: press R`, x0 + w + 14, y0 + h / 2 + 4);
+  if (!released) c.fillText(keyText(`${left} good bacteria waiting: press R`), x0 + w + 14, y0 + h / 2 + 4);
 }
 function drawHome(c) {
   const g = c.createRadialGradient(HOME.x + T, HOME.y + 3 * T, 6, HOME.x + T, HOME.y + 3 * T, 70);
@@ -1198,7 +1198,7 @@ function flyExtras(c) {
 
 return {
   num: 2, code: 'PLOP', award: 'BURP', title: 'Level 2 · The Great Poo Escape',
-  facts: FACTS, exit: EXIT, escort: { total: BAC_TOTAL, need: BAC_NEED, color: '#62d4b4' },
+  release: 'open the crapsule', facts: FACTS, exit: EXIT, escort: { total: BAC_TOTAL, need: BAC_NEED, color: '#62d4b4' },
   solid, reset, usePower, update, render, renderBackground: paintBackground, renderTerrain: paintTerrain,
   story: STORY, fly: FLY, finale: FINALE, flyExtras,
   lines: [...BRAIN_LINES.map(b => b[1]), ...Object.values(BRAIN)].map(t => 'Brain says: ' + t),

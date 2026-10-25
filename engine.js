@@ -776,8 +776,14 @@ function hudBottom(c) {
   c.fillStyle = 'rgba(12,2,4,.72)'; c.fillRect(0, H - 22, W, 22);
   c.textAlign = 'left'; c.fillStyle = '#ffe36b'; c.textBaseline = 'middle';
   const h = heroes[active];
-  c.fillText(`${h.name}: ${h.power}`, 8, H - 11);
-  c.fillStyle = '#e8c9c0'; c.fillText(hint, 300, H - 11);
+  c.fillText(keyText(`${h.name}: ${h.power}`), 8, H - 11);
+  // Shrink a long hint so it doesn't run under the Restart/Sound buttons.
+  const text = keyText(hint), room = hudRoom - 306;
+  let size = 12;
+  c.font = `bold ${size}px Trebuchet MS`;
+  while (size > 9 && c.measureText(text).width > room) c.font = `bold ${size -= .5}px Trebuchet MS`;
+  c.fillStyle = '#e8c9c0'; c.fillText(text, 300, H - 11);
+  c.font = 'bold 12px Trebuchet MS';
   c.textBaseline = 'alphabetic';
 }
 function render() { LV.render(ctx); }
@@ -790,6 +796,7 @@ function frame(now) {
   if (!paused && !ended) { acc += d; while (acc >= STEP && !paused && !ended) { update(STEP); acc -= STEP; } }
   else acc = 0;
   render();
+  touchTick();
   requestAnimationFrame(frame);
 }
 
@@ -813,6 +820,7 @@ function showPage(n, read) {
   document.getElementById('storyDots').textContent = story.map((_, i) => (i === page ? '●' : '○')).join('');
   document.getElementById('btnBack').style.visibility = page ? 'visible' : 'hidden';
   document.getElementById('btnNext').textContent = page === story.length - 1 ? 'Start!' : 'Next ▶';
+  if (touchMode) touchifyPage();
   if (read) speak(story[page], true); else hush();
 }
 function startGame() {
@@ -1059,8 +1067,13 @@ document.getElementById('btnNextLevel').onclick = () => goToCode(LV.award);
 
 // ---------- input ----------
 const KEYMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+function release() {
+  if (released) return;
+  released = true; spawnT = 0; LV.onRelease();
+}
 addEventListener('keydown', e => {
   ensureAudio();
+  if (KEYMAP[e.code] && touchMode) setTouchMode(false);
   if (e.target.tagName === 'INPUT') {
     if (e.key === 'Enter') { e.preventDefault(); submitCode(); }
     return;
@@ -1102,7 +1115,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyE' || e.code === 'Enter') { if (!e.repeat) powerQ = true; e.preventDefault(); }
   if (/^Digit[1-9]$/.test(e.code) && +e.code.slice(-1) <= heroes.length) { active = +e.code.slice(-1) - 1; sfx('switch'); }
   if (e.code === 'Tab') { active = (active + (e.shiftKey ? heroes.length - 1 : 1)) % heroes.length; sfx('switch'); e.preventDefault(); }
-  if (e.code === 'KeyR' && !released) { released = true; spawnT = 0; LV.onRelease(); }
+  if (e.code === 'KeyR') release();
 });
 addEventListener('keyup', e => { if (KEYMAP[e.code]) keys[KEYMAP[e.code]] = false; });
 addEventListener('blur', () => { keys.left = keys.right = false; });
@@ -1133,13 +1146,129 @@ btnRead.onclick = e => {
   btnRead.textContent = '🔊 Read aloud: ' + (readAloud ? 'on' : 'off'); e.target.blur();
 };
 
+// ---------- touch controls ----------
+// On a tablet or phone, on-screen buttons stand in for the keys. They sit beside or below the game
+// when there is room, and float over its bottom corners when there isn't.
+let touchMode = false, touchLayout = 'none', inLevel = false, touchShown = null, touchPowerFor = null;
+const touchEl = document.getElementById('touch');
+const TOUCH_KEYS = { R: '🚪', E: '⚡', Space: '⤒', Tab: '🔄' };
+function setTouchMode(on) {
+  if (touchMode === on) return;
+  touchMode = on;
+  document.body.classList.toggle('touch', on);
+  syncFull(); fit();
+  if (on && document.getElementById('intro').classList.contains('show')) touchifyPage();
+}
+// Hints are written for the keyboard; on a tablet "press E" means tap the power button.
+const touchText = t => t.replace(/press R/gi, 'tap 🚪').replace(/\(R\)/g, '(🚪)').replace(/press E/gi, 'tap ⚡').replace(/\bE(?=[ :])/g, '⚡');
+const keyText = t => (touchMode ? touchText(t) : t);
+function touchifyPage() {
+  storyBody.querySelectorAll('kbd').forEach(k => { if (TOUCH_KEYS[k.textContent]) k.textContent = TOUCH_KEYS[k.textContent]; });
+  storyBody.querySelectorAll('p.keys').forEach(p => {
+    p.innerHTML = '<span class="nospeak"><kbd>◀</kbd> <kbd>▶</kbd> move · <kbd>⤒</kbd> jump · <kbd>⚡</kbd> use power · ' +
+      'tap a hero or <kbd>🔄</kbd> to switch' + (LV.release ? ` · <kbd>🚪</kbd> ${LV.release}` : '') + '</span>';
+  });
+}
+addEventListener('pointerdown', e => { if (e.pointerType === 'touch' || e.pointerType === 'pen') setTouchMode(true); }, true);
+
+// The d-pad: one strip, left half moves left, right half moves right. Sliding a finger across works too.
+const dpad = document.getElementById('dpad'), dpadFingers = new Map();
+function dpadUpdate() {
+  let l = false, r = false;
+  for (const side of dpadFingers.values()) { if (side < 0) l = true; else r = true; }
+  keys.left = l; keys.right = r;
+  dpad.classList.toggle('l', l); dpad.classList.toggle('r', r);
+}
+function dpadSide(e) { const b = dpad.getBoundingClientRect(); return e.clientX < b.left + b.width / 2 ? -1 : 1; }
+dpad.addEventListener('pointerdown', e => {
+  e.preventDefault(); ensureAudio();
+  dpad.setPointerCapture(e.pointerId);
+  dpadFingers.set(e.pointerId, dpadSide(e)); dpadUpdate();
+});
+dpad.addEventListener('pointermove', e => { if (dpadFingers.has(e.pointerId)) { dpadFingers.set(e.pointerId, dpadSide(e)); dpadUpdate(); } });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture'])
+  dpad.addEventListener(ev, e => { dpadFingers.delete(e.pointerId); dpadUpdate(); });
+function touchButton(id, fn) {
+  const b = document.getElementById(id);
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault(); ensureAudio();
+    b.classList.add('down'); fn();
+  });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => b.classList.remove('down'));
+  b.addEventListener('contextmenu', e => e.preventDefault());
+}
+touchButton('tJump', () => { jumpQ = true; });
+touchButton('tPower', () => { powerQ = true; });
+touchButton('tSwitch', () => { active = (active + 1) % heroes.length; sfx('switch'); });
+touchButton('tRelease', release);
+function switchTo(i) { if (i !== active) { active = i; sfx('switch'); } }
+// Tap a hero's name in the top bar, or the hero itself, to switch to them. Works with a mouse too.
+cvs.addEventListener('pointerdown', e => {
+  if (!started || paused || ended) return;
+  const b = cvs.getBoundingClientRect();
+  const x = (e.clientX - b.left) * W / b.width, y = (e.clientY - b.top) * H / b.height;
+  if (y < 24) { const i = Math.floor((x - 6) / 104); if (i >= 0 && i < heroes.length && x - 6 - i * 104 < 98) switchTo(i); return; }
+  const pad = 14;
+  const hit = heroes.findIndex(h => x > h.x - pad && x < h.x + h.w + pad && y > h.y - pad && y < h.y + h.h + pad);
+  if (hit >= 0) switchTo(hit);
+});
+// Show the buttons only while the level itself is being played, and keep their labels current.
+function touchTick() {
+  if (!touchMode) return;
+  // Make room for the buttons only during the level, so story pages and the fly-in get the whole screen.
+  const playing = started && !ended && !fly.on;
+  if (playing !== inLevel) { inLevel = playing; fit(); }
+  const show = playing && !paused;
+  if (show !== touchShown) { touchShown = show; touchEl.classList.toggle('show', show); }
+  if (!show) return;
+  document.getElementById('tRelease').hidden = !LV.release || released;
+  const h = heroes[active];
+  if (touchPowerFor !== h) { touchPowerFor = h; document.getElementById('tPowerName').textContent = h.name; }
+}
+
+// Full screen hides the browser bars on a tablet. Offered only where the browser supports it.
+const btnFull = document.getElementById('btnFull'), docEl = document.documentElement;
+const fullEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+const canFull = !!(docEl.requestFullscreen || docEl.webkitRequestFullscreen);
+function syncFull() { btnFull.hidden = !touchMode || !canFull || !!fullEl(); measureHud(); }
+btnFull.onclick = () => {
+  const go = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+  try { const r = go.call(docEl); if (r && r.catch) r.catch(() => {}); } catch (e) { /* not allowed here */ }
+};
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { syncFull(); fit(); });
+
 // ---------- layout ----------
+// How much of the bottom bar (in game pixels) is free of the tool buttons, for the hint text.
+let hudRoom = W;
+function measureHud() {
+  const st = document.getElementById('stage').getBoundingClientRect(), tb = document.getElementById('tools').getBoundingClientRect();
+  hudRoom = !st.width || tb.top >= st.bottom - 1 ? W : (tb.left - st.left) * W / st.width;
+}
 function fit() {
-  const s = Math.min(innerWidth / W, innerHeight / H);
+  const vw = innerWidth, vh = innerHeight, wrap = document.getElementById('wrap');
+  let s = Math.min(vw / W, vh / H), pad = [0, 0, 0, 0];
+  touchLayout = 'none';
+  if (touchMode && inLevel) {
+    // Button size: big enough for a 7-year-old's thumb, scaled with the screen.
+    const cs = clamp(Math.min(vw, vh) * .13, 50, 84);
+    document.documentElement.style.setProperty('--cs', cs + 'px');
+    const below = Math.min(vw / W, (vh - cs * 2.1) / H), sides = Math.min((vw - cs * 5.6) / W, vh / H);
+    if (Math.max(below, sides) > s * .75) {
+      touchLayout = below >= sides ? 'below' : 'sides';
+      s = Math.max(below, sides);
+      pad = touchLayout === 'below' ? [0, 0, cs * 2.1, 0] : [0, cs * 2.8, 0, cs * 2.8];
+    } else touchLayout = 'over';
+    // Floating over the game, the right-hand buttons sit above the Restart/Sound buttons.
+    document.documentElement.style.setProperty('--lift', touchLayout === 'over' ? 16 * s * 2.2 + 'px' : '0px');
+  }
+  document.body.dataset.layout = touchLayout;
+  wrap.style.padding = pad.map(p => p + 'px').join(' ');
   const st = document.getElementById('stage');
   st.style.width = W * s + 'px'; st.style.height = H * s + 'px'; st.style.fontSize = 16 * s + 'px';
+  measureHud();
 }
 addEventListener('resize', fit);
+addEventListener('orientationchange', () => setTimeout(fit, 200));
 
 // Every fixed line the game can say, so tools/voice can pre-record them. Speech built from
 // numbers (maths questions and help) is left to the browser voice.
@@ -1167,8 +1296,10 @@ function boot() {
   document.getElementById('facts').classList.add('lv' + LV.num);
   fly.steps = LV.fly; fly.ship = [...LV.fly[0].path[0]];
   buildGloss();
+  if (LV.release) document.getElementById('tRelease').textContent = '🚪 ' + LV.release[0].toUpperCase() + LV.release.slice(1);
   renderBackground();
   resetLevel();
+  if (matchMedia('(hover: none) and (pointer: coarse)').matches) setTouchMode(true);
   fit();
   showPage(0, false);
   requestAnimationFrame(frame);
