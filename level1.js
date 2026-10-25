@@ -168,7 +168,7 @@ function win() {
 }
 
 // ---------- drawing: static layers ----------
-function renderBackground(c) {
+function paintBackground(c) {
   let g = c.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, '#3d0b12'); g.addColorStop(1, '#1c0306');
   c.fillStyle = g; c.fillRect(0, 0, W, H);
@@ -204,7 +204,7 @@ function renderBackground(c) {
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.55)');
   c.fillStyle = g; c.fillRect(0, 0, W, H);
 }
-function renderTerrain(c) {
+function paintTerrain(c) {
   const isSolid = (x, y) => x < 0 || x >= COLS || y < 0 || (y < ROWS && (grid[y][x] === 1 || grid[y][x] === 2));
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const t = grid[y][x];
@@ -489,7 +489,7 @@ function flyExtras(c) {
 return {
   num: 1, code: 'GERM', award: 'PLOP', title: 'Level 1 · The Bleeding Ulcer',
   facts: FACTS, exit: EXIT, escort: { total: RBC_TOTAL, need: RBC_NEED, color: '#e2323a' },
-  solid, reset, usePower, update, render, renderBackground, renderTerrain,
+  solid, reset, usePower, update, render, renderBackground: paintBackground, renderTerrain: paintTerrain,
   story: STORY, fly: FLY_ROUTE, flyExtras,
   onStart() { setTimeout(() => fact('hpylori'), 1500); },
   onRelease() { say(heroes[active], 'Here they come!', '#ffb0b0'); fact('ulcer'); },
