@@ -621,9 +621,9 @@ function drawLymph(c, langerHas) {
   c.fillStyle = alarm ? `rgba(255,${120 + p * 100 | 0},80,.9)` : langerHas ? `rgba(210,255,120,${.5 + p * .5})` : 'rgba(170,215,90,.7)';
   c.beginPath(); c.ellipse(LYMPH.x, LYMPH.y + 1, 9, 4, 0, 0, 7); c.fill();
   c.fillStyle = '#e4ffb0'; c.font = 'bold 9px Trebuchet MS'; c.textAlign = 'center';
-  c.fillText('LYMPH VESSEL', LYMPH.x, LYMPH.y - 34);
-  if (alarm) { c.fillStyle = Math.sin(anim * 8) > 0 ? '#ffdd66' : '#ff7a50'; c.fillText('🚨 ALARM!', LYMPH.x, LYMPH.y - 46); }
-  else if (langerHas) c.fillText('bring the sample here!', LYMPH.x + 6, LYMPH.y - 46 + Math.sin(anim * 4) * 2);
+  c.fillText('LYMPH VESSEL', LYMPH.x, LYMPH.y - 60);
+  if (alarm) { c.fillStyle = Math.sin(anim * 8) > 0 ? '#ffdd66' : '#ff7a50'; c.fillText('🚨 ALARM!', LYMPH.x, LYMPH.y - 72); }
+  else if (langerHas) c.fillText('bring the sample here!', LYMPH.x + 6, LYMPH.y - 72 + Math.sin(anim * 4) * 2);
 }
 function drawCapillary(c) {
   const left = TC_TOTAL - spawned;
@@ -636,14 +636,14 @@ function drawCapillary(c) {
   c.strokeStyle = 'rgba(200,40,50,.95)'; c.lineWidth = 7;
   c.beginPath(); c.moveTo(CAP.x - 10, CAP.y + 1); c.lineTo(CAP.x + 10, CAP.y + 1); c.stroke();
   c.fillStyle = '#ffd0d0'; c.font = 'bold 9px Trebuchet MS'; c.textAlign = 'center';
-  c.fillText('BLOOD VESSEL', CAP.x + 4, CAP.y - 58);
+  c.fillText('BLOOD VESSEL', CAP.x + 8, CAP.y - 22);
   c.fillStyle = '#cdeeff'; c.font = 'bold 10px Trebuchet MS'; c.textAlign = 'left';
   if (!alarm) c.fillText(`${left} Killer T cells waiting for the alarm`, CAP.x + 50, CAP.y - 74);
 }
 function drawGlandLabel(c) {
   c.fillStyle = '#d8eeff'; c.font = 'bold 9px Trebuchet MS'; c.textAlign = 'center';
-  c.fillText('SWEAT GLAND', 2 * T, 18 * T - 64);
-  c.fillText('salty! ⬇', 2 * T, 18 * T - 53);
+  c.fillText('SWEAT GLAND', 2 * T, 18 * T - 96);
+  c.fillText('salty! ⬇', 2 * T, 18 * T - 85);
 }
 function drawExitPore(c) {
   if (!kingDead) return;
@@ -728,7 +728,7 @@ function drawTips() {
     const x = 84 + i * 157;
     c.fillStyle = i === 2 ? 'rgba(199,224,79,.18)' : 'rgba(255,255,255,.06)'; rr(c, x - 72, 22, 144, 124, 10); c.fill();
     if (i === 2) { c.strokeStyle = '#c7e04f'; c.lineWidth = 2; c.stroke(); }
-    c.font = '38px Trebuchet MS'; c.fillText(icon, x, 76);
+    c.fillStyle = '#fff'; c.font = '38px Trebuchet MS'; c.fillText(icon, x, 76);
     c.fillStyle = '#f3e6d8'; c.font = 'bold 13px Trebuchet MS'; c.fillText(name, x, 106);
     c.fillStyle = '#e8c9c0'; c.font = '11px Trebuchet MS'; c.fillText(sub, x, 122);
     if (i === 2) { c.fillStyle = '#d7ef6a'; c.font = 'bold 11px Trebuchet MS'; c.fillText('★ YOU DID THIS! ★', x, 139); }
@@ -747,9 +747,9 @@ function drawPalm(c) {
 }
 function drawTeam(c, x, y, s, t, hop = 0) {
   c.save(); c.translate(x, y); c.scale(s, s);
-  drawZaal(c, -22, -Math.abs(Math.sin(t * 6)) * hop, 1, anim, false);
+  drawZaal(c, -40, -Math.abs(Math.sin(t * 6)) * hop, 1, anim, false);
   drawGobbler(c, 2, -Math.abs(Math.sin(t * 6 + 1)) * hop, 1, anim, 0, 3);
-  drawLanger(c, 26, -Math.abs(Math.sin(t * 6 + 2)) * hop, -1, anim, false);
+  drawLanger(c, 40, -Math.abs(Math.sin(t * 6 + 2)) * hop, -1, anim, false);
   c.restore();
 }
 const FINALE = [
@@ -789,8 +789,8 @@ const FINALE = [
         c.save(); c.translate(120 + i * 140, 90 - u * 160); c.rotate(u * 4 + i);
         c.fillStyle = 'rgba(210,180,110,.9)'; rr(c, -24, -8, 48, 16, 6); c.fill(); c.restore();
       }
-      c.fillStyle = '#c7e04f'; rr(c, 330, 440, 300, 50, 14); c.fill();
-      c.fillStyle = '#23360a'; c.font = 'bold 24px Trebuchet MS'; c.textAlign = 'center'; c.fillText('NEW SKIN ⬆', 480, 474);
+      c.fillStyle = '#c7e04f'; rr(c, 330, 190, 300, 50, 14); c.fill();
+      c.fillStyle = '#23360a'; c.font = 'bold 24px Trebuchet MS'; c.textAlign = 'center'; c.fillText('NEW SKIN ⬆', 480, 224);
     } },
   { dur: 3, text: 'The team climbs out of a sweat pore onto Zaal\'s palm. The rough lump is gone. High five!',
     draw(c, t) {
@@ -820,7 +820,6 @@ const FINALE = [
       c.restore();
       c.fillStyle = '#2b3a40'; c.font = 'bold 22px Trebuchet MS'; c.textAlign = 'center';
       c.fillText('Flip-flops at the pool', 180, 420); c.fillText('Your own towel', 480, 420); c.fillText('No picking!', 780, 420);
-      c.save(); c.translate(480, 500); c.scale(1.4, 1.4); drawTeam(c, 0, 0, 1, t, 8); c.restore();
     } },
 ];
 
