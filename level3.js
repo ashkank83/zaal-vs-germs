@@ -173,9 +173,10 @@ function tryPush(h) {
   h.pushT = 0;
   for (const c of row.slice().reverse()) {          // front flake first
     grid[fr][c] = 0;
-    const to = c + dir;
-    let r = fr;
+    let to = c + dir, r = fr;
     while (r + 1 < ROWS && grid[r + 1][to] === 0) r++;
+    // slippery with acid, a flake that lands on a plug slides on into the open half of the crack
+    while (grid[r + 1] && grid[r + 1][to] === PLUG && grid[r][to + dir] === 0 && grid[r + 1][to + dir] === CRACK) to += dir;
     if (grid[r + 1] && grid[r + 1][to] === CRACK) {
       grid[r + 1][to] = PLUG; sfx('plop'); say(h, 'Plugged the crack!', '#fff2a0');
       for (let i = 0; i < 10; i++) goo(to * T + 12, (r + 1) * T, 'rgba(240,225,180,.9)');
