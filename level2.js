@@ -864,30 +864,176 @@ function splash(c, x, y, u) {
     circle(c, x + Math.cos(a) * v * u, y + Math.sin(a) * v * u + 420 * u * u, 3 + hash(i, 6) * 3);
   }
 }
+// A comic speech bubble with its tail pointing down at (x, y).
+function bubble(c, x, y, text, size = 16) {
+  c.font = `bold ${size}px Trebuchet MS`;
+  const w = c.measureText(text).width + 22, h = size + 16, top = y - h - 12;
+  c.fillStyle = '#fff'; c.strokeStyle = '#2b070c'; c.lineWidth = 2.5;
+  rr(c, x - w / 2, top, w, h, 12); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(x - 7, top + h - 1); c.lineTo(x, y); c.lineTo(x + 7, top + h - 1); c.fill();
+  c.beginPath(); c.moveTo(x - 7, top + h); c.lineTo(x, y); c.lineTo(x + 7, top + h); c.stroke();
+  c.fillStyle = '#2b070c'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(text, x, top + h / 2 + 1); c.textBaseline = 'alphabetic';
+}
+// Big comic lettering, like "SLAM!" in a cartoon.
+function boom(c, x, y, text, size, fill, rot = -.12) {
+  c.save(); c.translate(x, y); c.rotate(rot);
+  c.font = `bold ${size}px Trebuchet MS`; c.textAlign = 'center'; c.lineJoin = 'round';
+  c.strokeStyle = '#2b070c'; c.lineWidth = size / 6; c.strokeText(text, 0, 0);
+  c.fillStyle = fill; c.fillText(text, 0, 0);
+  c.restore();
+}
+// Drops of toilet water flying up; u runs 0 to 1. height 1 is a small splash, 2 a big one.
+function bigSplash(c, x, y, u, height) {
+  if (u < 0 || u > 1.2) return;
+  for (let i = 0; i < 60; i++) {
+    const a = -Math.PI * (.32 + .36 * hash(i, 4)), v = (200 + hash(i, 5) * 300) * height;
+    const px = x + Math.cos(a) * v * u * .5, py = y + Math.sin(a) * v * u + 520 * height * u * u;
+    if (py > y + 10) continue;
+    c.fillStyle = `rgba(120,195,235,${Math.min(1, 1.3 - u)})`; circle(c, px, py, 4 + hash(i, 6) * 6);
+  }
+}
+function drawPaper(c, x, y, rot) {
+  c.save(); c.translate(x, y); c.rotate(rot);
+  c.fillStyle = '#fbfbf6'; c.strokeStyle = '#b9c6ca'; c.lineWidth = 2;
+  rr(c, -55, -70, 110, 140, 6); c.fill(); c.stroke();
+  c.setLineDash([4, 5]); c.beginPath(); c.moveTo(-55, -2); c.lineTo(55, -2); c.stroke(); c.setLineDash([]);
+  c.strokeStyle = 'rgba(180,195,200,.5)';
+  for (let i = -3; i <= 3; i++) for (let k = -2; k <= 2; k++) { c.beginPath(); c.arc(i * 15, k * 26 + 6, 2, 0, 7); c.stroke(); }  // quilting
+  c.restore();
+}
+function hand(c, x, y, f) {
+  c.save(); c.translate(x, y); c.scale(f, 1);
+  c.fillStyle = '#d99a72'; c.strokeStyle = '#8a5a3a'; c.lineWidth = 2.5;
+  c.beginPath(); c.ellipse(0, 0, 60, 34, -.2, 0, 7); c.fill(); c.stroke();
+  for (let i = 0; i < 4; i++) { c.beginPath(); c.ellipse(52, -26 + i * 15, 22, 7, -.2, 0, 7); c.fill(); c.stroke(); }
+  c.beginPath(); c.ellipse(-8, -34, 9, 20, .9, 0, 7); c.fill(); c.stroke();
+  c.restore();
+}
+// fin.cues holds which sound cues have played in the current scene.
+function cue(name, t, at, play) { if (t >= at && !fin.cues.has(name)) { fin.cues.add(name); play(); } }
+const freshCues = () => { fin.cues = new Set(); };
 const FINALE = [
-  { dur: 2.4, text: 'Zaal zaps the outer sphincter, and... BOMBS AWAY!', onShow() { fin.plop = false; },
+  { dur: 2.6, onShow: freshCues,
+    text: 'Upstairs, the brain spots a toilet! The person sprints in and slams the door. Phew, just in time!',
+    draw(c, t) {
+      c.fillStyle = '#ead9b8'; c.fillRect(0, 0, W, H);
+      c.fillStyle = '#c9b597'; c.fillRect(0, 410, W, H - 410);
+      c.fillStyle = '#8a6a48'; c.fillRect(0, 400, W, 12);
+      const shut = t > 1.1, shake = shut && t < 1.8 ? Math.sin(t * 60) * 4 : 0;
+      c.save(); c.translate(shake, 0);
+      c.fillStyle = '#5a3a1e'; c.fillRect(372, 52, 216, 352);                                  // frame
+      c.fillStyle = '#9a6a3a'; c.fillRect(384, 64, 192, 340);                                  // door
+      c.strokeStyle = '#7a4e26'; c.lineWidth = 4; c.strokeRect(404, 88, 152, 120); c.strokeRect(404, 230, 152, 150);
+      c.fillStyle = '#e8c860'; circle(c, 554, 240, 9);
+      c.fillStyle = '#fff'; rr(c, 440, 110, 80, 44, 8); c.fill();
+      c.font = '30px Trebuchet MS'; c.textAlign = 'center'; c.fillText('🚽', 480, 144);
+      c.restore();
+      if (!shut) {                                                                             // whoosh of someone running in
+        const x = 140 + t * 200;
+        c.strokeStyle = 'rgba(90,60,30,.6)'; c.lineWidth = 4;
+        for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(x - 140, 200 + i * 40); c.lineTo(x - 20, 200 + i * 40); c.stroke(); }
+        for (let i = 0; i < 5; i++) { c.fillStyle = 'rgba(200,180,150,.7)'; circle(c, x - 150 - i * 22, 395 - hash(i, 2) * 20, 12 + i * 3); }
+      }
+      bubble(c, 170, 128, 'TOILET FOUND!', 22);
+      c.font = '40px Trebuchet MS'; c.textAlign = 'center'; c.fillText('🧠', 150, 160);
+      if (shut) boom(c, 690, 170, 'SLAM!', 64, '#ffd84a');
+      if (t > 1.9) bubble(c, 480, 50, 'Phew!', 20);
+      cue('slam', t, 1.1, () => sfx('splat'));
+    } },
+  { dur: 2.8, onShow: freshCues,
+    text: 'Down below, Zaal zaps the outer sphincter. It opens up like a camera lens, and there\'s light at the end of the tunnel!',
+    draw(c, t) {
+      const ox = 480, oy = 210, open = clamp((t - .9) / 1, 0, 1);
+      c.fillStyle = '#4a1414'; c.fillRect(0, 0, W, H);
+      for (let i = 9; i >= 1; i--) {                                                            // rings of the rectum, shrinking into the distance
+        const r = i * 62 + Math.sin(anim * 2 + i) * 4;
+        c.fillStyle = i % 2 ? '#a8404a' : '#8a3038';
+        c.beginPath(); c.ellipse(ox, oy, r * 1.25, r * .82, 0, 0, 7); c.fill();
+        c.strokeStyle = 'rgba(255,190,190,.25)'; c.lineWidth = 3; c.stroke();
+      }
+      const g = c.createRadialGradient(ox, oy, 2, ox, oy, 4 + open * 66);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#fff2b0');
+      c.fillStyle = '#2a0608'; c.beginPath(); c.arc(ox, oy, 100, 0, 7); c.fill();
+      c.fillStyle = g; c.beginPath(); c.arc(ox, oy, 4 + open * 66, 0, 7); c.fill();
+      const hole = 4 + open * 66;                                                              // the sphincter: a ring of muscle
+      c.fillStyle = '#b8505e'; c.beginPath(); c.arc(ox, oy, 100, 0, 7); c.moveTo(ox + hole, oy); c.arc(ox, oy, hole, 0, 7, true); c.fill('evenodd');
+      c.strokeStyle = '#6a1c26'; c.lineWidth = 3; c.beginPath(); c.arc(ox, oy, 100, 0, 7); c.stroke();
+      c.lineWidth = 2;
+      for (let i = 0; i < 16; i++) {                                                         // puckered folds
+        const a = i / 16 * Math.PI * 2 + open * .6, w = .12 * (1 - open * .7);
+        c.beginPath(); c.moveTo(ox + Math.cos(a) * hole, oy + Math.sin(a) * hole);
+        c.quadraticCurveTo(ox + Math.cos(a + w) * (hole + 100) / 2, oy + Math.sin(a + w) * (hole + 100) / 2, ox + Math.cos(a) * 96, oy + Math.sin(a) * 96);
+        c.stroke();
+      }
+      c.strokeStyle = '#4a0e16'; c.lineWidth = 4; c.beginPath(); c.arc(ox, oy, hole, 0, 7); c.stroke();
+      const by = 400 + Math.sin(t * 3) * 3;
+      drawLog(c, 480, by, 0, 1.3); drawRiders(c, 480, by - 21, 2.2);
+      if (t > .5 && t < 1.2) {                                                                  // Zaal's zap
+        c.strokeStyle = '#fff36a'; c.lineWidth = 5; c.shadowColor = '#ffee55'; c.shadowBlur = 20;
+        c.beginPath(); c.moveTo(436, by - 90);
+        for (let i = 1; i <= 6; i++) c.lineTo(436 + (ox - 436) * i / 6 + (i % 2 ? 18 : -18), by - 90 + (oy - by + 90) * i / 6);
+        c.stroke(); c.shadowBlur = 0;
+      }
+      if (t > .5) bubble(c, 400, 280, 'ZAP!', 18);
+      if (t > 1.7) bubble(c, 590, 300, 'Is that... daylight?', 16);
+      cue('zap', t, .5, () => sfx('zap'));
+      cue('open', t, 1, () => sfx('squelch'));
+    } },
+  { dur: 2.8, onShow: freshCues,
+    text: 'BOMBS AWAY! PLOP! The splash flies all the way back up. That\'s called splashback. Eww!',
     draw(c, t) {
       bathroom(c); drawToilet(c, 0);
-      const land = 1.2, y = t < land ? -80 + 410 * (t / land) ** 2 : 330 + Math.sin((t - land) * 6) * 5 * Math.max(0, 1 - (t - land));
-      drawLog(c, 450, y, .05, 1.2); drawRiders(c, 450, y - 19);
-      if (t >= land && !fin.plop) { fin.plop = true; sfx('plop'); }
-      if (t > land) splash(c, 450, 330, (t - land) * 1.2);
+      const land = 1.1, y = t < land ? -90 + 420 * (t / land) ** 2 : 330 + Math.sin((t - land) * 7) * 6 * Math.max(0, 1 - (t - land));
+      drawLog(c, 450, y, .05 + (t < land ? Math.sin(t * 9) * .08 : 0), 1.2); drawRiders(c, 450, y - 19);
+      if (t < land) bubble(c, 450, y - 75, 'AAAAAAAH!', 18);
+      bigSplash(c, 450, 330, (t - land) * .9, 2.2);
+      if (t > land + .35) boom(c, 450, 120, 'SPLASHBACK!', 58, '#8fd6ff', -.06);
+      cue('plop', t, land, () => sfx('plop'));
+      cue('splash', t, land + .15, () => sfx('sploosh'));
     } },
-  { dur: 3, text: 'PLOP! A perfect Type 4: smooth and soft, like a sausage. With the good bacteria back, the colon makes proper poo again!',
+  { dur: 3, onShow: freshCues,
+    text: 'A perfect Type 4! The judges hold up their scores: ten, nine and a half, and ten. Gobbler took off half a point for the smell.',
     draw(c, t) {
       bathroom(c); drawToilet(c, 0);
       const y = 330 + Math.sin(t * 2) * 3;
       drawLog(c, 450, y, .05, 1.2); drawRiders(c, 450, y - 19);
-      c.strokeStyle = 'rgba(120,160,40,.7)'; c.lineWidth = 3;                              // stink lines
+      c.strokeStyle = 'rgba(120,160,40,.7)'; c.lineWidth = 3;                                 // stink lines
       for (let i = 0; i < 3; i++) {
         c.beginPath();
-        for (let k = 0; k <= 10; k++) c.lineTo(400 + i * 50 + Math.sin(k + t * 4 + i) * 6, 250 - k * 9 - (t * 20) % 20);
+        for (let k = 0; k <= 8; k++) c.lineTo(310 + i * 290 * .5 + Math.sin(k + t * 4 + i) * 6, 300 - k * 9 - (t * 20) % 20);
         c.stroke();
       }
-      c.fillStyle = '#c7e04f'; rr(c, 90, 90, 170, 60, 14); c.fill();
-      c.fillStyle = '#23360a'; c.font = 'bold 30px Trebuchet MS'; c.textAlign = 'center'; c.fillText('TYPE 4 ✓', 175, 131);
+      [['10', 395, .4, 0], ['9.5', 455, .9, 16], ['10', 515, 1.4, 0]].forEach(([n, x, at, up]) => {   // score cards over each hero
+        if (t < at) return;
+        const pop = Math.min(1, (t - at) * 6), cy0 = y - 125 - up;
+        c.save(); c.translate(x, cy0); c.scale(pop, pop);
+        c.fillStyle = '#fff'; c.strokeStyle = '#2b070c'; c.lineWidth = 2.5; rr(c, -23, -22, 46, 40, 6); c.fill(); c.stroke();
+        c.fillStyle = '#2b070c'; c.fillRect(-2, 18, 4, 30 + up);
+        c.fillStyle = n === '9.5' ? '#c0392b' : '#23360a'; c.font = 'bold 24px Trebuchet MS'; c.textAlign = 'center'; c.fillText(n, 0, 7);
+        c.restore();
+      });
+      if (t > 1.8) bubble(c, 610, 200, 'Minus half a point. PEE-YEW!', 15);
+      c.fillStyle = '#c7e04f'; rr(c, 60, 70, 180, 64, 14); c.fill();
+      c.fillStyle = '#23360a'; c.font = 'bold 30px Trebuchet MS'; c.textAlign = 'center'; c.fillText('TYPE 4 ✓', 150, 113);
+      cue('c1', t, .4, () => sfx('saved')); cue('c2', t, .9, () => sfx('saved')); cue('c3', t, 1.4, () => sfx('saved'));
+      cue('toot', t, 2, () => sfx('fart', .15));
     } },
-  { dur: 3, text: 'Somebody pulls the flush... WHOOOOOSH!', onShow() { sfx('flush'); },
+  { dur: 2.4, onShow: freshCues,
+    text: 'Uh-oh. Incoming toilet paper! Everybody duck!',
+    draw(c, t) {
+      bathroom(c); drawToilet(c, 0);
+      const y = 330 + Math.sin(t * 2) * 3, duck = t > 1 ? Math.min(10, (t - 1) * 30) : 0;
+      drawLog(c, 450, y, .05, 1.2); drawRiders(c, 450, y - 19 + duck);
+      for (let i = 0; i < 3; i++) {
+        const py = -160 + t * 170 - i * 70;
+        drawPaper(c, 330 + i * 120 + Math.sin(t * 3 + i * 2) * 25, Math.min(py, 270 - i * 10), Math.sin(t * 2 + i) * .3);
+      }
+      bubble(c, 450, y - 80 + duck, t < 1 ? 'INCOMING!' : t < 1.9 ? 'DUCK!' : 'Mmmf!', 20);
+      cue('swish', t, .2, () => sfx('slime'));
+    } },
+  { dur: 3, onShow() { freshCues(); sfx('flush'); },
+    text: 'Somebody pulls the flush... WHOOOOOSH!',
     draw(c, t) {
       bathroom(c);
       const u = Math.min(1, t / 2.6);
@@ -895,34 +1041,77 @@ const FINALE = [
       c.save(); c.translate(450 + 6 * u, 330 + 45 * u); c.rotate(t * 7 * u); c.scale(1 - u * .85, 1 - u * .85);
       drawLog(c, 0, 0, 0, 1.2); drawRiders(c, 0, -19);
       c.restore();
+      if (t > .4) bubble(c, 250, 210, 'Wheeee!', 18);
+      if (t > 1.1) bubble(c, 690, 205, 'I feel sick...', 16);
+      if (t > 1.8) bubble(c, 470, 120, 'Best. Day. EVER!', 20);
     } },
-  { dur: 3.2, text: 'Wheee! Round the U-bend, with the C. diff spores tumbling after. Bye bye, germs!',
+  { dur: 3.2, onShow: freshCues,
+    text: 'Round the U-bend we go, with the C. diff spores tumbling after. Bye bye, germs!',
     draw(c, t) {
       c.fillStyle = '#1c2a30'; c.fillRect(0, 0, W, H);
-      const path = [[-60, 120], [180, 300], [420, 440], [640, 400], [800, 220], [1040, 140]];
+      const path = [[-60, 120], [180, 300], [420, 400], [640, 360], [800, 200], [1040, 120]];
       c.lineCap = 'round'; c.lineJoin = 'round';
       for (const [w, col] of [[150, '#e8eef0'], [126, '#5a7f8c'], [110, 'rgba(110,185,220,.85)']]) {
         c.strokeStyle = col; c.lineWidth = w; c.beginPath(); path.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke();
       }
       const u = Math.min(1, t / 3.2), [x, y] = alongPath(path, u * .9 + .03), [x2, y2] = alongPath(path, Math.min(1, u * .9 + .05));
       drawLog(c, x, y, Math.atan2(y2 - y, x2 - x), 1); drawRiders(c, x, y - 16, 1.7);
-      for (let i = 1; i <= 3; i++) { const [sx, sy] = alongPath(path, Math.max(0, u * .9 + .03 - i * .07)); c.save(); c.translate(sx, sy); c.rotate(t * 5 + i); c.scale(2.2, 2.2); drawSpore(c, 0, 0, t); c.restore(); }
-      c.fillStyle = '#fff'; c.font = 'bold 22px Trebuchet MS'; c.textAlign = 'center'; c.fillText('Bye!', x + 10, y - 110);
+      for (let i = 1; i <= 3; i++) {
+        const [sx, sy] = alongPath(path, Math.max(0, u * .9 + .03 - i * .07));
+        c.save(); c.translate(sx, sy); c.rotate(t * 5 + i); c.scale(2.2, 2.2); drawSpore(c, 0, 0, t); c.restore();
+      }
+      bubble(c, x + 10, y - 80, 'Bye bye, germs!', 18);
     } },
-  { dur: 3.2, text: 'One last thing: always wash your hands with soap and water after the toilet. Hand gel can\'t kill C. diff spores, but soap washes them away!',
+  { dur: 3.2, onShow: freshCues,
+    text: 'The poo water flows all the way to the sewage works. There, even more helpful bacteria gobble up the mess and help clean the water!',
+    draw(c, t) {
+      let g = c.createLinearGradient(0, 0, 0, 300); g.addColorStop(0, '#9fd3f0'); g.addColorStop(1, '#dff1f8');
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+      c.fillStyle = '#8fb55a'; c.fillRect(0, 300, W, H - 300);
+      c.fillStyle = '#5a6a70'; rr(c, 40, 30, 290, 50, 8); c.fill();
+      c.fillStyle = '#fff'; c.font = 'bold 26px Trebuchet MS'; c.textAlign = 'center'; c.fillText('SEWAGE WORKS', 185, 65);
+      for (let k = 0; k < 2; k++) {                                                            // two cut-away tanks
+        const tx = 120 + k * 400;
+        c.fillStyle = '#b9c2c4'; rr(c, tx, 170, 330, 220, 12); c.fill();
+        c.fillStyle = '#7a5a24'; c.fillRect(tx + 14, 200, 302, 176);
+        for (let i = 0; i < 14; i++) {                                                         // air bubbles feeding the bacteria
+          const bx = tx + 24 + hash(i, k) * 282, by = 376 - ((t * 60 + hash(i, k + 5) * 176) % 176);
+          c.strokeStyle = 'rgba(230,240,240,.7)'; c.lineWidth = 1.5; c.beginPath(); c.arc(bx, by, 3 + hash(i, 9) * 3, 0, 7); c.stroke();
+        }
+        for (let i = 0; i < 3; i++) {                                                          // bacteria munching poo crumbs
+          const bx = tx + 70 + i * 95, by = 290 + Math.sin(t * 3 + i + k) * 10, crumb = Math.max(0, 1 - ((t * .8 + i * .3) % 1.2));
+          c.fillStyle = '#4a2e10'; circle(c, bx + 26, by, 9 * crumb);
+          c.save(); c.translate(bx, by); c.scale(2.6, 2.6); drawBact(c, 0, 0, 1, t + i, 'home', (i + k) % 3); c.restore();
+          if (Math.sin(t * 8 + i) > .7) { c.fillStyle = '#fff'; c.font = 'bold 13px Trebuchet MS'; c.fillText('nom!', bx + 4, by - 26); }
+        }
+      }
+      drawLog(c, 480, 150, 0, .8); drawRiders(c, 480, 136, 1.4);
+      bubble(c, 600, 100, 'We made it!', 16);
+    } },
+  { dur: 4.2, onShow: freshCues,
+    text: 'Back upstairs, the person washes their hands with soap for 20 seconds. That\'s about as long as singing Happy Birthday twice! Hand gel can\'t kill C. diff spores, but soap washes them away.',
     draw(c, t) {
       c.fillStyle = '#dff1f5'; c.fillRect(0, 0, W, H);
-      c.fillStyle = '#f7f7f2'; c.strokeStyle = '#9fb0b6'; c.lineWidth = 3;                  // sink
-      c.beginPath(); c.moveTo(250, 330); c.lineTo(710, 330); c.quadraticCurveTo(700, 470, 480, 470); c.quadraticCurveTo(260, 470, 250, 330); c.fill(); c.stroke();
-      c.fillStyle = '#b8c4c8'; rr(c, 455, 230, 50, 20, 6); c.fill(); rr(c, 470, 230, 20, 80, 6); c.fill();
-      c.fillStyle = '#f39ac0'; rr(c, 560, 290, 90, 40, 14); c.fill();                       // soap
-      c.fillStyle = '#fff'; c.font = 'bold 18px Trebuchet MS'; c.textAlign = 'center'; c.fillText('SOAP', 605, 317);
-      c.save(); c.translate(380, 330); c.scale(3, 3); drawZaal(c, 0, 0, 1, anim, false); c.restore();
-      for (let i = 0; i < 26; i++) {
-        const bx = 260 + hash(i, 1) * 440, by = 420 - ((t * (30 + hash(i, 2) * 40) + hash(i, 3) * 400) % 400), r = 5 + hash(i, 4) * 12;
-        c.strokeStyle = 'rgba(160,200,230,.8)'; c.lineWidth = 2; c.beginPath(); c.arc(bx, by, r, 0, 7); c.stroke();
+      c.fillStyle = '#f7f7f2'; c.strokeStyle = '#9fb0b6'; c.lineWidth = 3;                    // sink
+      c.beginPath(); c.moveTo(200, 330); c.lineTo(760, 330); c.quadraticCurveTo(750, 470, 480, 470); c.quadraticCurveTo(210, 470, 200, 330); c.fill(); c.stroke();
+      c.fillStyle = '#b8c4c8'; rr(c, 455, 150, 50, 20, 6); c.fill(); rr(c, 470, 150, 20, 70, 6); c.fill();
+      const rub = Math.sin(t * 9) * 14;
+      hand(c, 420 + rub, 270, 1); hand(c, 540 - rub, 290, -1);
+      for (let i = 0; i < 22; i++) {                                                           // soap bubbles, some with a spore trapped inside
+        const life = (t * (.25 + hash(i, 2) * .2) + hash(i, 3)) % 1, r = 6 + hash(i, 4) * 14;
+        const bx = 380 + hash(i, 1) * 200 + Math.sin(life * 6 + i) * 10, by = 300 - life * 260;
+        if (life > .92) { c.fillStyle = '#fff'; c.font = 'bold 12px Trebuchet MS'; c.textAlign = 'center'; c.fillText('pop!', bx, by); continue; }
+        if (i % 4 === 0) { c.save(); c.translate(bx, by); c.scale(.9, .9); drawSpore(c, 0, 0, t); c.restore(); }
+        c.strokeStyle = 'rgba(150,195,230,.85)'; c.lineWidth = 2; c.beginPath(); c.arc(bx, by, r, 0, 7); c.stroke();
         c.fillStyle = 'rgba(255,255,255,.7)'; circle(c, bx - r * .35, by - r * .35, r * .25);
       }
+      const secs = Math.min(20, Math.floor(t / 4 * 20));                                      // the 20-second timer
+      c.fillStyle = '#2b070c'; rr(c, 790, 60, 130, 80, 12); c.fill();
+      c.fillStyle = secs >= 20 ? '#c7e04f' : '#ffd84a'; c.font = 'bold 44px Trebuchet MS'; c.textAlign = 'center';
+      c.fillText(`${secs}s`, 855, 117);
+      bubble(c, 230, 200, secs >= 20 ? 'Squeaky clean! ✓' : 'Happy birthday to youuu ♪', 17);
+      c.save(); c.translate(130, 330); c.scale(2.6, 2.6); drawZaal(c, 0, 0, 1, anim, false); c.restore();
+      cue('ding', t, 4, () => sfx('win'));
     } },
 ];
 
