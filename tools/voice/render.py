@@ -41,6 +41,15 @@ SAY_AS = {
     r'\bdiarrhoea\b': 'die-a-ree-a',
     r'\bhaemoglobin\b': 'hee-mo-glow-bin',
     r'\bfaecal\b': 'fee-cal',
+    r'\bpapillomavirus\b': 'pap-ill-oh-ma virus',
+    r'\bpapilloma\b': 'pap-ill-oh-ma',
+    r'\bpapilla\b': 'pap-ill-a',
+    r'\bsalicylic\b': 'sal-ih-sil-ik',
+    r'\bLangerhans\b': 'lang-er-hans',
+    r'\bicosahedron\b': 'eye-koss-a-hee-dron',
+    r'\bverruca\b': 'ver-roo-ka',
+    r'\bvulgaris\b': 'vul-gar-iss',
+    r'\bHPV\b': 'aitch pee vee',
 }
 
 
