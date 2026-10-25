@@ -84,7 +84,7 @@ function buildGrid() {
   for (let x = 18; x <= 22; x++) for (let y = 15; y < 18; y++) g[y][x] = 9;        // poo bank, reached by the gas vent
   for (let x = 23; x <= 28; x++) { g[18][x] = 4; g[19][x] = SWAMP; }             // squishy poo over the swamp
   g[18][30] = CRACK; g[18][31] = CRACK;                                           // dry crack
-  g[17][29] = 5; g[17][33] = 5;                                                   // hard poo boulders
+  g[17][27] = 5; g[17][29] = 5;                                                   // hard poo boulders, pushed right into the crack
   for (let x = 36; x <= 38; x++) for (let y = 1; y < 13; y++) g[y][x] = 1;        // rectum wall
   for (let y = 13; y < 18; y++) { g[y][36] = 3; g[y][37] = 10; }                  // inner and outer sphincters
   for (const x of [13, 14, 15, 24, 25, 26]) g[1][x] = 1;                          // folds in the colon roof
@@ -109,7 +109,7 @@ function reset() {
     makeHero('goblet', 'Goblet', 7, 20, 26, 115, 420, 'E: slime a boulder, or make a mucus raft'),
   ];
   for (const h of heroes) Object.assign(h, { cpX: h.x, cpY: h.y, sinkT: 0, sink: 0 });
-  germs = [cdiff(15, 17), cdiff(20, 14), cdiff(26, 17), cdiff(32, 17)];
+  germs = [cdiff(15, 17), cdiff(20, 14), cdiff(24, 17), cdiff(32, 17)];
   clearTimeout(brainTimer);
   document.getElementById('brainSays').textContent = '';
 }
@@ -174,28 +174,40 @@ function usePower(h) {
   }
 }
 // A slimed boulder slides one tile when a hero walks into it; dry ones won't budge.
+// Slimed boulders slide one tile when a hero walks into them, and a row of them slides together.
+// Dry ones won't budge. A boulder that drops into the crack plugs it.
 function tryPush(h) {
   if (!h.onGround || !h.vx) { h.pushT = 0; return; }
   const dir = Math.sign(h.vx), fr = Math.floor((h.y + h.h - 2) / T);
-  const ac = Math.floor((dir > 0 ? h.x + h.w + 2 : h.x - 2) / T), t = grid[fr] && grid[fr][ac];
-  if (t === 5) {
+  const ac = Math.floor((dir > 0 ? h.x + h.w + 2 : h.x - 2) / T);
+  const isBoulder = c => grid[fr] && (grid[fr][c] === 5 || grid[fr][c] === 6);
+  if (!isBoulder(ac)) { h.pushT = 0; return; }
+  const row = [];
+  for (let c = ac; isBoulder(c); c += dir) row.push(c);
+  if (row.some(c => grid[fr][c] === 5)) {
     h.vx = 0;
     if (!h.toldDry || gameTime - h.toldDry > 4) { h.toldDry = gameTime; say(h, 'Too dry and sticky to push! Goblet can slime it.', '#ffd88a'); }
     return;
   }
-  const tc = ac + dir;
-  if (t !== 6 || tc < 23 || tc > 33 || grid[fr][tc] !== 0 || solid(grid[fr - 1][ac])) { h.pushT = 0; return; }
+  const tc = row[row.length - 1] + dir;
+  if (tc < 23 || tc > 33 || grid[fr][tc] !== 0 || row.some(c => solid(grid[fr - 1][c]))) {
+    if (tc > 33 && (!h.toldHome || gameTime - h.toldHome > 4)) { h.toldHome = gameTime; say(h, 'Keep the bare wall clear for the bacteria!', '#ffd88a'); }
+    h.pushT = 0; return;
+  }
   h.vx = 0; h.pushT = (h.pushT || 0) + STEP;
   if (h.pushT < .2) return;
   h.pushT = 0;
-  grid[fr][ac] = 0;
-  let r = fr;
-  while (r + 1 < ROWS && grid[r + 1][tc] === 0) r++;
-  if (grid[r + 1][tc] === CRACK || grid[r + 1][tc] === SWAMP) {
-    grid[r + 1][tc] = 11; sfx('plop'); say(h, 'Plugged the crack!', '#e8f5b0');
-    for (let i = 0; i < 10; i++) goo(tc * T + 12, (r + 1) * T, '#5a3a14');
-    fact('water');
-  } else grid[r][tc] = 6;
+  for (const c of row.slice().reverse()) {          // front boulder first
+    grid[fr][c] = 0;
+    const to = c + dir;
+    let r = fr;
+    while (r + 1 < ROWS && grid[r + 1][to] === 0) r++;
+    if (grid[r + 1][to] === CRACK || grid[r + 1][to] === SWAMP) {
+      grid[r + 1][to] = 11; sfx('plop'); say(h, 'Plugged the crack!', '#e8f5b0');
+      for (let i = 0; i < 10; i++) goo(to * T + 12, (r + 1) * T, '#5a3a14');
+      fact('water');
+    } else grid[r][to] = 6;
+  }
   renderTerrain(); sfx('push');
 }
 
@@ -356,6 +368,7 @@ function update(dt) {
   if (nervePulse >= 0 && nervePulse < 1) nervePulse += dt;
   if (outerOpen && heroes.every(h => h.inExit)) return finish();
   if (!released) hint = 'Make the path safe first, then press R to open the crapsule.';
+  else if (grid[18][30] === CRACK || grid[18][31] === CRACK) hint = 'Plug the crack: Goblet slimes the poo boulders, then push them right into it.';
   else if (!innerOpen) hint = 'Lead the good bacteria to the bare pink wall. A hero standing still turns them around.';
   else if (!outerOpen) hint = `${saved} bacteria moved in! Zaal: zap the nerve to open the way out.`;
   else hint = 'Get every hero out through the rectum. Time to go!';
@@ -963,6 +976,7 @@ const STORY = [
      <li>If a bacterium falls in the swamp or gets bullied by C. diff, it pops back into the crapsule for another go. No rush!</li>
      <li><b>Gas vents</b> float you up. Yes, they're farts. 💨</li>
      <li>Squishy poo sinks if you stand still on it. Keep moving!</li>
+     <li>Bacteria can't cross the dry crack. Goblet slimes the poo boulders, then any hero can push them in.</li>
      <li>Now and then a big ${Wd('peristalsis')} <span class="pron">(PERRY-stal-sis)</span> squeeze rolls by. It makes everyone hop and sweeps spores away.</li>
    </ul>
    <p class="keys" style="text-align:center"><span class="nospeak"><kbd>←</kbd> <kbd>→</kbd> move · <kbd>Space</kbd> jump · <kbd>E</kbd> use power ·
