@@ -58,7 +58,6 @@ SAY_AS = {
     r'\btrigeminal\b': 'try-jem-in-al',
     r'\bIgA\b': 'eye jee ay',
     r'\bsaline\b': 'say-line',
-    r'\bbogeys?\b': lambda m: 'bo-gee' + ('s' if m.group(0).lower().endswith('s') else ''),
 }
 
 

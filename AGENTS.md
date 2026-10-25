@@ -81,6 +81,8 @@ The URL hash picks the level (`index.html#PLOP`). The title screen's 🔑 Enter 
 - Fact cards cover part of the screen for 12 s. Place them per level (`#facts.lvN` in CSS) away from where the action starts.
 - The end panel overflows when a level adds art. `#end .panel` scrolls and has a max height, so keep fact lists short.
 - **Parked heroes anywhere on the walkers' path block it.** Give each level off-path parking spots (Level 3: left of the lymph vessel, and inside the King's chamber) and test a full walk with every hero parked.
+- **Germs can wander into a gap next to their patrol.** In Level 4 a virus next to the snot river fell in, and Annie couldn't glue it. Keep a germ's home at least a tile from any gap, and make powers that target germs forgiving about exact position.
+- In cloud sessions, Playwright is pre-installed: `require('playwright')` and `chromium.launch()` need no options. Reload between levels with `goto('about:blank')` first, because changing only the hash doesn't reload the page.
 - If the Playwright MCP browser is locked by another session, drive the installed Chrome with the cached `playwright` package in `~/.npm/_npx/*/node_modules/playwright` (`chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' })`).
 - Test in this order: refactor with no change in behaviour → verify Level 1 → add the new level. Commit after each step (the folder is a git repo).
 
