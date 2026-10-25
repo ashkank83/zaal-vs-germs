@@ -8,7 +8,7 @@ const KING = { x: 36.6 * T, y: 18 * T };
 const LYMPH = { x: 4 * T + 12, y: 18 * T };                     // where Langer raises the alarm
 const CAP = { x: 6 * T + 12, y: 18 * T };                       // the capillary the T cells squeeze out of
 const LIFT = { x: 24 * T, w: 2 * T, top: 14 * T - 2 };          // sweat duct: floats things up to the platform
-const KER = 5, CORK = 6, FLAKE = 7, LOOSE = 8, PLUG = 10, CRACK = 11;
+const KER = 5, CORK = 6, FLAKE = 7, PLUG = 10, CRACK = 11;
 const NAIL_FIRST = 40, NAIL_EVERY = 45, NAIL_SPEED = 260;
 const NAMES = ['Killer Tilly', 'Killer Theo', 'Killer Tess', 'Killer Tariq', 'Killer Tom', 'Killer Tara',
   'Killer Toby', 'Killer Tamsin', 'Killer Ted', 'Killer Tia'];
@@ -74,12 +74,12 @@ Object.assign(ORGANS, { 'left hand': [334, 490] });
 
 // ---------- level ----------
 let alarm, kingHP, kingDead, kingGone, kingHit, puffT, meltQ, meltAcc, meltWall, wallOpen, domeOpen;
-let nameI, brainI, oops, nail, gulps, firstSplish, crackShut;
+let nameI, brainI, oops, nail, gulps, firstSplish, crackShut, tumbleQ, tumbleT;
 let brainTimer = 0;
 const fin = {};
 const fx = f => { if (!muted && actx) f(); };
 // Tiles: 1 tough top skin (ceiling and side walls), 9 dermis floor, 4 stacked skin cells, 5 keratin (acid melts it),
-// 6 keratin cork in the sweat pore, 7 dead skin flake (stuck), 8 loosened flake, 10 flake plugging the crack,
+// 6 keratin cork in the sweat pore, 7 dead skin flake, 10 flake plugging the crack,
 // 11 crack. Columns 1-2 are the sweat gland pit.
 function buildGrid() {
   const g = [];
@@ -88,15 +88,15 @@ function buildGrid() {
   for (let y = 0; y < ROWS; y++) { g[y][0] = 1; g[y][COLS - 1] = 1; }
   for (let y = 18; y < ROWS; y++) { g[y][1] = 0; g[y][2] = 0; }                  // the sweat gland
   for (let y = 3; y < 18; y++) { g[y][17] = KER; g[y][18] = KER; }               // keratin wall
-  g[17][19] = FLAKE; g[17][20] = FLAKE;                                           // dead skin flakes, pushed right...
-  g[18][22] = CRACK; g[18][23] = CRACK;                                           // ...into the crack in the wart
+  g[16][21] = FLAKE; g[17][21] = FLAKE;                                           // a pile of dead skin flakes on the lip...
+  g[18][22] = CRACK; g[18][23] = CRACK;                                           // ...that acid tips into the crack in the wart
   for (let x = 26; x <= 32; x++) for (let y = 14; y < 18; y++) g[y][x] = 4;      // platform of skin cells
   for (let y = 3; y < 14; y++) g[y][33] = KER;                                   // the keratin dome round the King
   g[16][33] = 4; g[17][33] = 4;                                                   // a step down into his chamber
   for (let y = 14; y < 18; y++) g[y][38] = CORK;                                 // the corked sweat pore
   return g;
 }
-const solid = t => t === 1 || t === 4 || t === 9 || t === KER || t === CORK || t === FLAKE || t === LOOSE || t === PLUG;
+const solid = t => t === 1 || t === 4 || t === 9 || t === KER || t === CORK || t === FLAKE || t === PLUG;
 function tileAt(x, y) {
   const c = Math.floor(x / T), r = Math.floor(y / T);
   return r >= 0 && r < ROWS && c >= 0 && c < COLS ? grid[r][c] : 0;
@@ -108,7 +108,7 @@ function reset() {
   grid = buildGrid();
   alarm = false; kingHP = TC_NEED; kingDead = false; kingGone = 0; kingHit = 0; puffT = 30;
   meltQ = []; meltAcc = 0; meltWall = ''; wallOpen = domeOpen = false;
-  nameI = 0; brainI = 0; oops = 0; gulps = 0; firstSplish = true; crackShut = false;
+  nameI = 0; brainI = 0; oops = 0; gulps = 0; firstSplish = true; crackShut = false; tumbleQ = []; tumbleT = 0;
   nail = { x: -1, next: NAIL_FIRST, warned: false, id: 0, n: 0 };
   heroes = [
     makeHero('zaal', 'Zaal', 9, 16, 30, 150, 575, 'Super-jump · E at keratin: squirt acid'),
@@ -138,67 +138,41 @@ function kerAhead(h) {
   }
   return null;
 }
-function flakeAhead(h) {
-  const fr = Math.floor((h.y + h.h - 2) / T);
-  for (const d of [4, 16]) {
-    const c = Math.floor((h.facing > 0 ? h.x + h.w + d : h.x - d) / T);
-    if (grid[fr] && grid[fr][c] === FLAKE) return [fr, c];
-  }
-  return null;
+// Any dead skin flake within reach, in front, behind or under Zaal's feet, so the acid works from either side.
+function flakeNear(h) {
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++)
+    if (grid[r][c] === FLAKE && Math.abs(c * T + T / 2 - cx(h)) < 64 && Math.abs(r * T + T / 2 - cy(h)) < 64) return true;
+  return false;
 }
-// Acid soaks along a whole row of touching flakes.
-function loosen(r, c) {
-  for (const d of [-1, 1]) for (let x = d < 0 ? c : c + 1; grid[r][x] === FLAKE; x += d) grid[r][x] = LOOSE;
-  renderTerrain();
+// Acid dissolves the glue in the pile: the flakes come unstuck and tumble into the crack, one per half.
+function tumble(h) {
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] === FLAKE) {
+    grid[r][c] = 0;
+    for (let i = 0; i < 8; i++) goo(c * T + 12, r * T + 12, 'rgba(200,240,140,.9)');
+  }
+  tumbleQ = []; tumbleT = 0;
+  for (let c = 0; c < COLS; c++) if (grid[18][c] === CRACK) tumbleQ.push(c);
+  renderTerrain(); sfx('slime'); say(h, 'The glue melted! TIMBER!', '#fff2a0'); fact('glue');
 }
-// Loosened flakes slide one tile when a hero walks into them, and a row of them slides together.
-// Stuck ones won't budge. A flake that slides over the crack drops in and plugs it.
-function tryPush(h) {
-  if (!h.onGround || !h.vx) { h.pushT = 0; return; }
-  const dir = Math.sign(h.vx), fr = Math.floor((h.y + h.h - 2) / T);
-  const ac = Math.floor((dir > 0 ? h.x + h.w + 2 : h.x - 2) / T);
-  const isFlake = c => grid[fr] && (grid[fr][c] === FLAKE || grid[fr][c] === LOOSE);
-  if (!isFlake(ac)) { h.pushT = 0; return; }
-  const row = [];
-  for (let c = ac; isFlake(c); c += dir) row.push(c);
-  if (row.some(c => grid[fr][c] === FLAKE)) {
-    h.vx = 0;
-    if (!h.toldStuck || gameTime - h.toldStuck > 4) { h.toldStuck = gameTime; say(h, 'Stuck fast! Zaal\'s acid can loosen it.', '#ffd88a'); }
-    return;
-  }
-  const tc = row[row.length - 1] + dir;
-  if (tc < 13 || tc > 23 || grid[fr][tc] !== 0 || row.some(c => solid(grid[fr - 1][c]))) { h.pushT = 0; return; }
-  h.vx = 0; h.pushT = (h.pushT || 0) + STEP;
-  if (h.pushT < .2) return;
-  h.pushT = 0;
-  for (const c of row.slice().reverse()) {          // front flake first
-    grid[fr][c] = 0;
-    let to = c + dir, r = fr;
-    while (r + 1 < ROWS && grid[r + 1][to] === 0) r++;
-    // slippery with acid, a flake that lands on a plug slides on into the open half of the crack
-    while (grid[r + 1] && grid[r + 1][to] === PLUG && grid[r][to + dir] === 0 && grid[r + 1][to + dir] === CRACK) to += dir;
-    if (grid[r + 1] && grid[r + 1][to] === CRACK) {
-      grid[r + 1][to] = PLUG; sfx('plop'); say(h, 'Plugged the crack!', '#fff2a0');
-      for (let i = 0; i < 10; i++) goo(to * T + 12, (r + 1) * T, 'rgba(240,225,180,.9)');
-      fact('flakes');
-    } else grid[r][to] = LOOSE;
-  }
-  renderTerrain(); sfx('push');
-  if (!grid[18].includes(CRACK) && !crackShut) { crackShut = true; sfx('cheer'); }
+function updateTumble(dt) {
+  if (!tumbleQ.length) return;
+  tumbleT += dt;
+  if (tumbleT < .35) return;
+  tumbleT = 0;
+  const c = tumbleQ.shift();
+  grid[18][c] = PLUG; renderTerrain(); sfx('plop');
+  for (let i = 0; i < 10; i++) goo(c * T + 12, 18 * T, 'rgba(240,225,180,.9)');
+  if (!tumbleQ.length) { crackShut = true; sfx('cheer'); setTimeout(() => fact('flakes'), 1500); }
 }
 const nearKing = (h, d = 64) => !kingDead && Math.hypot(KING.x - cx(h), KING.y - 20 - cy(h)) < d;
 function usePower(h) {
   if (h.id === 'zaal') {
     if (meltQ.length) return say(h, 'Still fizzing! Wait a moment...', '#ffe9a0');
     const at = kerAhead(h);
-    const fl = flakeAhead(h);
-    if (!at && fl) return openMath('ACID TIME! Solve it to loosen the dead skin:', () => {
-      loosen(...fl); sfx('slime');
-      say(h, 'Loosened! Now anyone can push it.', '#fff2a0'); fact('glue');
-      for (let i = 0; i < 12; i++) goo(fl[1] * T + 12, fl[0] * T + 8, 'rgba(200,240,140,.9)');
-    }, () => say(h, 'Pfft... the acid dribbled off.', '#ffb0b0'));
+    if (!at && flakeNear(h)) return openMath('ACID TIME! Solve it to melt the glue in the dead skin:', () => tumble(h),
+      () => say(h, 'Pfft... the acid dribbled off.', '#ffb0b0'));
     if (!at) {
-      if (gapCells(h, t => t === CRACK).cells.length) return say(h, 'Plug the crack with dead skin flakes!', '#ffd88a');
+      if (gapCells(h, t => t === CRACK).cells.length) return say(h, 'Acid the dead skin pile to plug the crack!', '#ffd88a');
       return say(h, nearestGerm(h) ? 'A virus! Gobbler can eat it.' : 'No keratin here! Find a yellow wall.');
     }
     openMath('ACID TIME! Solve it to squirt salicylic acid:', () => {
@@ -409,16 +383,14 @@ function updateNail(dt) {
   if (nail.x > W + 80) { nail.x = -1; nail.next = gameTime + NAIL_EVERY; nail.warned = false; }
 }
 function update(dt) {
-  updateHeroes(dt, heroAfter, (h, i) => {
-    liftUp(h, 130);
-    if (i === active && h.knockT <= 0) tryPush(h);
-  });
+  updateHeroes(dt, heroAfter, h => liftUp(h, 130));
   if (ended || paused) return;
   updateGerms(dt, virusStep);
   spawnWalkers(dt, TC_TOTAL, TC_GAP, makeTcell);
   for (const r of walkers) walkerStep(r, dt);
   walkers = walkers.filter(r => r.state !== 'gone');
   updateMelt(dt);
+  updateTumble(dt);
   updateKing(dt);
   updateNail(dt);
 
@@ -432,7 +404,7 @@ function update(dt) {
   if (kingDead && heroes.every(h => h.inExit)) return finish();
   const lg = heroes[2];
   if (!wallOpen) hint = 'Zaal: press E by the yellow keratin wall.';
-  else if (!crackShut) hint = 'Acid the flakes, then push them into the crack!';
+  else if (!crackShut) hint = 'Zaal: squirt acid on the dead skin pile!';
   else if (!alarm && !lg.sample) hint = 'Langer: ride the sweat up, grab a virus.';
   else if (!alarm) hint = 'Langer: take it to the green lymph vessel!';
   else if (!domeOpen) hint = 'Zaal: melt the dome! Guard the lymph vessel!';
@@ -523,8 +495,8 @@ function paintTerrain(c) {
       c.fillStyle = `hsl(350,40%,${44 + hash(x, y) * 8}%)`; c.strokeStyle = 'rgba(60,15,25,.8)'; c.lineWidth = 1.2;
       rr(c, px + 1, py + 1, T - 2, T - 2, 7); c.fill(); c.stroke();
       c.fillStyle = 'rgba(90,30,80,.7)'; circle(c, px + 10 + hash(x, y, 2) * 4, py + 12, 3.5);
-    } else if (t === FLAKE || t === LOOSE || t === PLUG) {
-      // dead skin flakes: pale, crusty and curling up at the edges; loosened ones glisten with acid
+    } else if (t === FLAKE || t === PLUG) {
+      // dead skin flakes: pale, crusty and curling up at the edges
       const top = t === PLUG ? py + 1 : py + 5;
       c.fillStyle = t === PLUG ? '#b8a070' : '#e6d6a8'; c.strokeStyle = '#7a6438'; c.lineWidth = 1.4;
       c.beginPath(); c.moveTo(px + 1, py + T);
@@ -532,10 +504,6 @@ function paintTerrain(c) {
       c.lineTo(px + T - 1, py + T); c.closePath(); c.fill(); c.stroke();
       c.strokeStyle = 'rgba(120,95,50,.6)'; c.lineWidth = 1;
       for (let i = 0; i < 2; i++) { const ly = py + 11 + i * 6; c.beginPath(); c.moveTo(px + 4, ly); c.quadraticCurveTo(px + 12, ly - 3, px + T - 4, ly); c.stroke(); }
-      if (t === LOOSE) {
-        c.fillStyle = 'rgba(190,240,140,.45)'; rr(c, px + 1, py + 4, T - 2, T - 5, 5); c.fill();
-        c.fillStyle = 'rgba(190,240,140,.85)'; c.beginPath(); c.moveTo(px + 7, py + T - 1); c.quadraticCurveTo(px + 9, py + T + 5, px + 11, py + T - 1); c.fill();
-      }
       continue;
     } else if (t === CRACK) {
       const g = c.createLinearGradient(0, py, 0, py + T);
@@ -737,8 +705,7 @@ function drawGlandLabel(c) {
 }
 function drawPuzzleLabels(c) {
   c.fillStyle = '#f3e6c0'; c.font = 'bold 9px Trebuchet MS'; c.textAlign = 'center';
-  const fl = grid[17].findIndex(t => t === FLAKE || t === LOOSE);
-  if (fl >= 0 && !crackShut) c.fillText('DEAD SKIN', fl * T + T, 17 * T - 10);
+  if (grid[16][21] === FLAKE) c.fillText('DEAD SKIN', 21 * T + T / 2, 16 * T - 6);
   if (!crackShut) c.fillText('CRACK', 23 * T, 18 * T - 30 + Math.sin(anim * 4) * 2);
 }
 function drawExitPore(c) {
@@ -965,7 +932,7 @@ const STORY = [
   `<h2>Your mission</h2>
    <ul>
      <li>Raise the alarm, then get at least <b>7 of the 10</b> ${Wd('killer T cell', 'Killer T cells')} to <b>King Papilloma</b>. Then all 3 heroes leave through the sweat pore.</li>
-     <li>Zaal's acid melts <b>yellow keratin</b> and loosens <b>dead skin flakes</b>. Push the flakes into the <b>crack</b> so T cells can cross.</li>
+     <li>Zaal's acid melts <b>yellow keratin</b> and loosens <b>dead skin flakes</b>. Melt the glue in the pile and it tumbles into the <b>crack</b>, so T cells can cross.</li>
      <li>Langer grabs a <b>virus sample</b>, then takes it to the green <b>lymph vessel</b> to raise the alarm. That calls the Killer T cells out of the ${Wd('capillary')}.</li>
      <li>T cells walk by themselves, and they come out walking <b>left</b>, towards the salty ${Wd('sweat gland')}! A hero standing still turns them around.</li>
      <li>If a T cell falls in the sweat gland, it goes back to the capillary for another go. No rush!</li>

@@ -32,8 +32,8 @@ a hero must stand there to turn them round (Lemmings). Need 7 to reach **King Pa
 zaps him and he shrinks. Lost T cells go back to the capillary for another go.
 
 ## Layout (left to right)
-Sweat gland pit · lymph vessel · capillary · heroes' start · a virus · keratin wall (acid) · dead skin flakes (acid
-loosens them, then push them right) · a crack the T cells can't cross until it's plugged · sweat-duct lift (floats
+Sweat gland pit · lymph vessel · capillary · heroes' start · a virus · keratin wall (acid) · dead skin pile at the crack (acid
+melts its glue and it tumbles into the crack) · a crack the T cells can't cross until it's plugged · sweat-duct lift (floats
 you up, like Level 2's gas vent) · raised platform with viruses · keratin dome (acid) · step down · King's chamber ·
 sweat pore exit (opens when the King is beaten).
 
