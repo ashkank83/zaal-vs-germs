@@ -14,6 +14,12 @@ const STINK = [[0, 'Fresh(ish)'], [1, 'Old Sock'], [3, 'Cheese Factory'], [6, 'R
   [15, 'Skunk Explosion'], [22, 'Toxic Cloud']];
 const BRAIN_LINES = [[20, 'Was that a rumble down there?'], [80, 'Hmm. We might need a toilet soon...'],
   [140, 'We need a toilet SOON!'], [200, 'FIND A TOILET! I\'m crossing my legs up here!'], [270, 'Seriously. Toilet. NOW. Please?']];
+const BRAIN = {
+  fart: 'Pardon me! Was that you down there?',
+  early: 'Hold it! We haven\'t found a toilet yet!',
+  toilet: 'TOILET FOUND! Sitting down now... Zaal, zap the nerve to open the way out!',
+  push: 'Ready... steady... PUSH! Everybody out!',
+};
 
 // ---------- body facts ----------
 const FACTS = {
@@ -159,11 +165,11 @@ function usePower(h) {
     if (d > 34) return say(h, 'Find the glowing nerve!');
     if (!innerOpen) {
       say(h, `Not yet! ${BAC_NEED} good bacteria need to move in first.`, '#ffd88a');
-      return brainSay('Hold it! We haven\'t found a toilet yet!');
+      return brainSay(BRAIN.early);
     }
     openMath('NERVE SIGNAL! Solve it to open the outer sphincter:', () => {
       outerOpen = true; nervePulse = 0; sfx('zap');
-      brainSay('Ready... steady... PUSH! Everybody out!');
+      brainSay(BRAIN.push);
     }, () => say(h, 'Fizzle... try again!', '#ffb0b0'));
   }
 }
@@ -200,7 +206,7 @@ function toot(e) {
   sfx('fart', size); stink++;
   say(e, pick(size > .7 ? ['BRAAAP!', 'PFFFRRRT!', 'BLAAARP!'] : size > .35 ? ['PFFFT!', 'TOOT!', 'PARP!'] : ['squeak!', 'pfft', 'fip!']), '#d7ef6a');
   for (let i = 0; i < 6; i++) goo(cx(e), e.y + e.h, 'rgba(190,220,120,.6)');
-  if (firstFart) { firstFart = false; brainSay('Pardon me! Was that you down there?'); fact('farts'); }
+  if (firstFart) { firstFart = false; brainSay(BRAIN.fart); fact('farts'); }
   else if (stink === 4) fact('fartGas');
   else if (stink === 9) fact('smell');
 }
@@ -343,7 +349,7 @@ function update(dt) {
   if (!innerOpen && brainI < BRAIN_LINES.length && gameTime > BRAIN_LINES[brainI][0]) brainSay(BRAIN_LINES[brainI++][1]);
   if (saved >= BAC_NEED && !innerOpen) {
     innerOpen = true; sfx('cheer'); fact('sphincter');
-    brainSay('TOILET FOUND! Sitting down now... Zaal, zap the nerve to open the way out!');
+    brainSay(BRAIN.toilet);
   }
   if (innerOpen) innerAnim = Math.min(1, innerAnim + dt * 1.2);
   if (outerOpen) outerAnim = Math.min(1, outerAnim + dt * 1.2);
@@ -991,7 +997,8 @@ return {
   num: 2, code: 'PLOP', award: 'BURP', title: 'Level 2 · The Great Poo Escape',
   facts: FACTS, exit: EXIT, escort: { total: BAC_TOTAL, need: BAC_NEED, color: '#62d4b4' },
   solid, reset, usePower, update, render, renderBackground: paintBackground, renderTerrain: paintTerrain,
-  story: STORY, fly: FLY, flyExtras,
+  story: STORY, fly: FLY, finale: FINALE, flyExtras,
+  lines: [...BRAIN_LINES.map(b => b[1]), ...Object.values(BRAIN)].map(t => 'Brain says: ' + t),
   dbg: () => ({ stink, oops, innerOpen, outerOpen, wave }),   // for testing from the console
   onStart() { setTimeout(() => fact('antibiotic'), 1500); setTimeout(() => fact('colon'), 16000); },
   onRelease() { say(heroes[active], 'Pop! Here they come!', '#bff7c9'); sfx('plop'); fact('crapsule'); },

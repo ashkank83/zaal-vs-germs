@@ -44,7 +44,7 @@ function fact(key) {
 }
 
 // ---------- read aloud ----------
-let readAloud = 'speechSynthesis' in window, voice = null;
+let readAloud = true, voice = null;
 function pickVoice() {
   const vs = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
   voice = vs.find(v => /en-GB/.test(v.lang) && /natural|google|serena|kate|daniel|libby|sonia/i.test(v.name)) ||
@@ -64,16 +64,59 @@ function speechText(html) {
     .replace(/=/g, ' equals ').replace(/→/g, ', ').replace(/…/g, ', and so on').replace(/·/g, ',')
     .replace(/([.!?:])(\s*\.)+/g, '$1').replace(/(\.\s*){2,}/g, '. ').replace(/\s+/g, ' ').trim();
 }
-function speak(html, interrupt = false) {
-  if (!readAloud || !('speechSynthesis' in window)) return;
-  if (interrupt) speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(speechText(html));
+// Lines recorded with tools/voice (voice/<key>.m4a, listed in voice/index.js) play as clips;
+// anything else, like maths questions, uses the browser voice. Both share one queue.
+const voiceKey = text => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(16).padStart(8, '0');
+};
+const recorded = window.VOICE_LINES || new Set();
+let sayQ = [], sayNow = null, clip = null, sayTimer = 0;
+function sayNext() {
+  clearTimeout(sayTimer);
+  const item = sayNow = sayQ.shift() || null;
+  if (!item) return;
+  let finished = false;
+  const done = () => {
+    if (finished || sayNow !== item) return;
+    finished = true; clearTimeout(sayTimer);
+    if (item.onend) item.onend();
+    sayNext();
+  };
+  // Chrome sometimes never fires onend for long speech, so don't let the queue get stuck.
+  sayTimer = setTimeout(done, 4000 + item.text.length * 110);
+  if (item.src) {
+    let fellBack = false;
+    const fallBack = () => { if (!fellBack && sayNow === item) { fellBack = true; ttsSay(item.text, done); } };
+    clip = new Audio(item.src);
+    clip.onended = done; clip.onerror = fallBack;
+    clip.play().catch(fallBack);
+  } else ttsSay(item.text, done);
+}
+function ttsSay(text, done) {
+  if (!('speechSynthesis' in window)) return done();
+  const u = new SpeechSynthesisUtterance(text);
   if (voice) u.voice = voice;
   u.rate = .92; u.pitch = 1.05;
+  u.onend = done; u.onerror = done;
   speechSynthesis.speak(u);
-  return u;
 }
-function hush() { if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+function speak(html, interrupt = false) {
+  if (!readAloud) return;
+  const text = speechText(html), key = voiceKey(text), has = recorded.has(key);
+  if (!text || (!has && !('speechSynthesis' in window))) return;
+  if (interrupt) hush();
+  const item = { text, src: has ? `voice/${key}.m4a` : null, onend: null };
+  sayQ.push(item);
+  if (!sayNow) sayNext();
+  return item;
+}
+function hush() {
+  sayQ = []; sayNow = null; clearTimeout(sayTimer);
+  if (clip) { clip.onended = clip.onerror = null; clip.pause(); clip = null; }
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
 
 // ---------- body words ----------
 const GLOSS = {
@@ -155,8 +198,28 @@ function fart(size) {
   o.start(t0); lfo.start(t0); o.stop(t0 + dur + .05); lfo.stop(t0 + dur + .05);
   hiss(dur * .8, .03 + size * .05, 350);
 }
+// Recorded CC0 sound effects (sfx/, credits in sfx/CREDITS.md). Plain Audio elements work even
+// when the game is opened straight from a file. If a file can't play, the synth version is used.
+const SAMPLES = {
+  fart_s: ['fart_s1', 'fart_s2'], fart_m: ['fart_m1', 'fart_m2'], fart_l: ['fart_l1', 'fart_l2'],
+  burp: ['burp'], plop: ['plop'], sploosh: ['sploosh'], squelch: ['squelch'], flush: ['flush'], gulp: ['gulp'],
+};
+const badSample = new Set();
+function playSample(name) {
+  const file = pick(SAMPLES[name]);
+  if (badSample.has(file)) return false;
+  const a = new Audio(`sfx/${file}.m4a`);
+  a.volume = .85;
+  a.onerror = () => badSample.add(file);
+  a.play().catch(() => badSample.add(file));
+  return true;
+}
 function sfx(name, arg) {
   if (muted || !actx) return;
+  if (name === 'fart') {
+    const size = arg ?? Math.random();
+    if (playSample(size < .35 ? 'fart_s' : size < .7 ? 'fart_m' : 'fart_l')) return;
+  } else if (SAMPLES[name] && playSample(name)) return;
   switch (name) {
     case 'jump': tone(220, .15, 'square', .05, 520); break;
     case 'gulp': tone(320, .35, 'sine', .25, 60); hiss(.3, .15, 600); break;
@@ -370,6 +433,7 @@ function explain(p, reveal) {
   }
 }
 
+const PRAISE = ['Correct!', 'Brilliant!', 'Yes! Power up!', 'Spot on!'];
 let mathCtx = null;
 const mathEl = document.getElementById('math');
 const helpEl = document.getElementById('mathHelp');
@@ -410,7 +474,7 @@ function submitMath() {
   const m = mathCtx, msg = document.getElementById('mathMsg');
   m.locked = true;
   if (parseInt(m.typed, 10) === m.p.a) {
-    const praise = pick(['Correct!', 'Brilliant!', 'Yes! Power up!', 'Spot on!']);
+    const praise = pick(PRAISE);
     msg.style.color = '#c7e04f'; msg.textContent = praise;
     sfx('right'); speak(praise, true); streak++; misses = 0;
     if (streak >= (mathLevel < 3 ? 3 : 4) && mathLevel < 5) { mathLevel++; streak = 0; saveBrain(); }
@@ -1064,7 +1128,6 @@ document.getElementById('btnSound').onclick = e => {
   muted = !muted; e.target.textContent = 'Sound: ' + (muted ? 'off' : 'on'); e.target.blur();
 };
 const btnRead = document.getElementById('btnRead');
-if (!('speechSynthesis' in window)) btnRead.hidden = true;
 btnRead.onclick = e => {
   readAloud = !readAloud; if (!readAloud) hush();
   btnRead.textContent = '🔊 Read aloud: ' + (readAloud ? 'on' : 'off'); e.target.blur();
@@ -1077,6 +1140,23 @@ function fit() {
   st.style.width = W * s + 'px'; st.style.height = H * s + 'px'; st.style.fontSize = 16 * s + 'px';
 }
 addEventListener('resize', fit);
+
+// Every fixed line the game can say, so tools/voice can pre-record them. Speech built from
+// numbers (maths questions and help) is left to the browser voice.
+function allSpeech() {
+  const out = new Map(), add = html => { const t = speechText(html); if (t) out.set(voiceKey(t), t); };
+  for (const lv of Object.values(LEVELS)) {
+    lv.story.forEach(add);
+    lv.fly.forEach(s => add(s.text));
+    (lv.finale || []).forEach(s => add(s.text));
+    Object.values(lv.facts).forEach(f => add('Body fact! ' + f));
+    (lv.lines || []).forEach(add);
+    add(`Your secret code is ${lv.award.split('').join(', ')}. ${lv.award}!`);
+  }
+  Object.keys(GLOSS).forEach(k => add(`${k}. ${GLOSS[k][1]}`));
+  PRAISE.forEach(add);
+  return [...out].map(([key, text]) => ({ key, text }));
+}
 
 // ---------- boot ----------
 // Called from index.html once every level file has loaded. The URL hash (#CODE) picks the level.

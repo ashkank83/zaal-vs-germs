@@ -1,2 +1,4 @@
 .playwright-mcp/
 .DS_Store
+tools/voice/.venv/
+tools/voice/models/
